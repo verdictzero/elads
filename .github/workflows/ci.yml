@@ -64,3 +64,24 @@ jobs:
         run: cmake --preset stub
       - name: Build stub target
         run: cmake --build --preset stub
+
+  # Build the GUI/GL-free core library and run its CTest suite on both arches.
+  core:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ ubuntu-24.04, ubuntu-24.04-arm ]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show toolchain
+        run: |
+          uname -m
+          cmake --version
+          c++ --version | head -1
+      - name: Configure (core preset)
+        run: cmake --preset core
+      - name: Build core + tests
+        run: cmake --build --preset core
+      - name: Run tests (ctest)
+        run: ctest --preset core

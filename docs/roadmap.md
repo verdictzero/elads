@@ -4,6 +4,12 @@ Living plan. Dates are relative effort estimates, not commitments. Priorities:
 **MVP** → **v1** → **later**. The guiding principle is *de-risk graphics first, reuse
 SLADE aggressively, and phase 3D fidelity*.
 
+> **Progress:** the design docs + scaffolding are complete, and a first **GUI/GL-free core**
+> now compiles and passes tests (`cmake --preset core && ctest --preset core`): lightweight
+> WAD I/O (`src/archive`), the map data model (`src/mapeditor/model`), foundational utils
+> (`src/util`), and the render-abstraction **interface** (`src/render/backend`). Next is
+> Phase 0 (on-device graphics bring-up), which needs real Pi 5 hardware.
+
 ## Phase 0 — On-device bring-up spike (2–4 weeks)
 
 **Goal:** de-risk the single biggest unknown (graphics) before committing architecture.

@@ -8,10 +8,11 @@ into a **single native GPLv3 application** that runs **hardware-accelerated on a
 - the **resource / archive / graphics / code editing** of [SLADE3](https://github.com/sirjuddington/SLADE), and
 - the **2D map editing + 3D visual-mode** authoring of [Ultimate Doom Builder](https://github.com/UltimateDoomBuilder/UltimateDoomBuilder).
 
-> **Status: pre-alpha / design phase.** This repository currently contains the
-> comprehensive internal **design documentation** and **project scaffolding**. No editor
-> feature code has been written yet. See [`docs/`](docs/) for the full design and
-> [`docs/roadmap.md`](docs/roadmap.md) for the plan.
+> **Status: pre-alpha.** This repository contains the comprehensive internal **design
+> documentation**, the **project scaffolding**, and the first **GUI/GL-free core**
+> (WAD I/O, the map data model, and the render-abstraction interface) with a passing test
+> suite. The GUI/OpenGL layers are not built yet. See [`docs/`](docs/) for the full design
+> and [`docs/roadmap.md`](docs/roadmap.md) for the plan.
 
 ---
 
@@ -78,19 +79,27 @@ scripts/         Pi bootstrap, third-party toolchain build, GL probe
 
 ## Building
 
-> There is nothing to build yet. When Phase 1 begins, the flow on a Pi 5 will be:
+**Build + test the GUI/GL-free core today** (no wxWidgets/OpenGL needed — any C++17 toolchain):
+
+```sh
+cmake --preset core          # configure the core library + tests
+cmake --build --preset core  # build
+ctest --preset core          # run the test suite
+```
+
+Validate just the scaffold (no code compiled):
+
+```sh
+cmake --preset stub && cmake --build --preset stub   # prints "elads scaffold OK"
+```
+
+When the GUI/OpenGL layers land (Phase 1), the flow on a Pi 5 will be:
 
 ```sh
 scripts/bootstrap-pi.sh          # install apt dependencies (wx 3.2.x, GL/EGL, Lua, …)
 scripts/build-toolchain.sh       # build AJBSP / ZDBSP / acc from source (aarch64)
 cmake --preset pi-native         # configure
 cmake --build --preset pi-native # build
-```
-
-The current skeleton supports a no-op configure to validate the scaffold:
-
-```sh
-cmake -S . -B build -DELADS_STUB=ON && echo "scaffold OK"
 ```
 
 ## License

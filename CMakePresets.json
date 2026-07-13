@@ -47,12 +47,31 @@
       "displayName": "CI on ubuntu-24.04-arm",
       "description": "Configure-only scaffold check on native arm64 GitHub Actions runners.",
       "inherits": "stub"
+    },
+    {
+      "name": "core",
+      "displayName": "Core library + tests (GUI/GL-free)",
+      "description": "Builds the dependency-free core (util, archive, map model, render interface) and its CTest suite. Compiles on any C++17 toolchain — no wxWidgets/OpenGL needed.",
+      "inherits": "base",
+      "cacheVariables": {
+        "ELADS_STUB": "OFF",
+        "ELADS_CORE": "ON",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
     }
   ],
   "buildPresets": [
     { "name": "stub", "configurePreset": "stub" },
     { "name": "pi-native", "configurePreset": "pi-native" },
     { "name": "desktop-linux", "configurePreset": "desktop-linux" },
-    { "name": "arm64-ci", "configurePreset": "arm64-ci" }
+    { "name": "arm64-ci", "configurePreset": "arm64-ci" },
+    { "name": "core", "configurePreset": "core" }
+  ],
+  "testPresets": [
+    {
+      "name": "core",
+      "configurePreset": "core",
+      "output": { "outputOnFailure": true }
+    }
   ]
 }

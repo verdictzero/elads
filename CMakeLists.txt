@@ -17,6 +17,7 @@ project(elads
 # ---------------------------------------------------------------------------
 
 option(ELADS_STUB "Configure the scaffold only; skip feature build + dependency discovery" ON)
+option(ELADS_CORE "Build the GUI/GL-free core library (util, archive, map model, render interface) + tests" OFF)
 
 # Render-backend selection (see docs/design/02-render-abstraction.md).
 # GLES 3.1 is the primary, Pi-appropriate target. Others are fallbacks.
@@ -33,8 +34,21 @@ endif()
 
 message(STATUS "elads ${PROJECT_VERSION}")
 message(STATUS "  ELADS_STUB           = ${ELADS_STUB}")
+message(STATUS "  ELADS_CORE           = ${ELADS_CORE}")
 message(STATUS "  ELADS_RENDER_BACKEND = ${ELADS_RENDER_BACKEND}")
 message(STATUS "  CMAKE_SYSTEM_PROCESSOR = ${CMAKE_SYSTEM_PROCESSOR}")
+
+# CORE mode: build the GUI/GL-free core library + tests. This needs no wxWidgets/OpenGL,
+# so it compiles and runs on any C++17 toolchain (incl. CI x86 and native aarch64).
+if(ELADS_CORE)
+    message(STATUS "")
+    message(STATUS "elads: CORE mode — building the GUI/GL-free core library + tests.")
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+    add_subdirectory(src)
+    enable_testing()
+    add_subdirectory(tests)
+    return()
+endif()
 
 if(ELADS_STUB)
     message(STATUS "")
