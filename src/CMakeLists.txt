@@ -6,6 +6,8 @@
 add_library(elads_core STATIC
     archive/wad.cpp
     mapeditor/model/map_model.cpp
+    mapeditor/model/doom_map_io.cpp
+    mapeditor/model/udmf.cpp
 )
 
 target_include_directories(elads_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -16,3 +18,7 @@ if(MSVC)
 else()
     target_compile_options(elads_core PRIVATE -Wall -Wextra)
 endif()
+
+# elads — command-line front-end over the core (no GUI/GL).
+add_executable(elads app/cli_main.cpp)
+target_link_libraries(elads PRIVATE elads_core)

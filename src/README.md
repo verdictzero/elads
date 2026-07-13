@@ -7,8 +7,10 @@ The **GUI/GL-free core** now has its first real, tested code (build with
 
 - `util/` — `geometry.h` (Vec2/BBox/segment distance), `byte_io.h` (LE reader/writer), `undo.h`
 - `archive/` — `wad.{h,cpp}` (lightweight WAD read/write, byte-for-byte round-trip)
-- `mapeditor/model/` — `map_objects.h`, `map_model.{h,cpp}` (geometry model + topology/hit-test helpers)
+- `mapeditor/model/` — `map_objects.h`, `map_model.{h,cpp}` (geometry model + topology/hit-test),
+  `doom_map_io.{h,cpp}` (classic Doom binary maps + map discovery), `udmf.{h,cpp}` (UDMF text, lossless)
 - `render/backend/` — `render_backend.h` (the `IRenderDevice`/`IRenderContext` interface)
+- `app/` — `cli_main.cpp` (the `elads` CLI: `wad-info`, `map-info`, `demo-wad`)
 
 The remaining directories hold a `README.md` describing their responsibility and the SLADE
 source they will reuse or extend; the GUI/OpenGL implementations land in Phase 1.

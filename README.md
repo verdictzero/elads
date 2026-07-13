@@ -9,10 +9,11 @@ into a **single native GPLv3 application** that runs **hardware-accelerated on a
 - the **2D map editing + 3D visual-mode** authoring of [Ultimate Doom Builder](https://github.com/UltimateDoomBuilder/UltimateDoomBuilder).
 
 > **Status: pre-alpha.** This repository contains the comprehensive internal **design
-> documentation**, the **project scaffolding**, and the first **GUI/GL-free core**
-> (WAD I/O, the map data model, and the render-abstraction interface) with a passing test
-> suite. The GUI/OpenGL layers are not built yet. See [`docs/`](docs/) for the full design
-> and [`docs/roadmap.md`](docs/roadmap.md) for the plan.
+> documentation**, the **project scaffolding**, and a working **GUI/GL-free core** with a
+> passing test suite: WAD read/write, the map data model, **classic Doom binary** and
+> **UDMF** map (de)serialization (lossless round-trip), the render-abstraction interface,
+> and an **`elads` CLI** that inspects WADs and maps. The GUI/OpenGL layers are not built
+> yet. See [`docs/`](docs/) for the full design and [`docs/roadmap.md`](docs/roadmap.md).
 
 ---
 
@@ -83,8 +84,17 @@ scripts/         Pi bootstrap, third-party toolchain build, GL probe
 
 ```sh
 cmake --preset core          # configure the core library + tests
-cmake --build --preset core  # build
+cmake --build --preset core  # build (also builds the `elads` CLI)
 ctest --preset core          # run the test suite
+```
+
+Try the CLI (writes a sample WAD with a binary and a UDMF map, then inspects it):
+
+```sh
+./build/core/src/elads demo-wad /tmp/demo.wad
+./build/core/src/elads wad-info /tmp/demo.wad
+./build/core/src/elads map-info /tmp/demo.wad MAP01   # binary
+./build/core/src/elads map-info /tmp/demo.wad MAP02   # UDMF
 ```
 
 Validate just the scaffold (no code compiled):

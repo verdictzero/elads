@@ -8,6 +8,8 @@
 
 #include <array>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "util/geometry.h"
 
@@ -18,8 +20,14 @@ constexpr const char* kNoTexture = "-";    // Doom's "no texture" sentinel
 
 using Args = std::array<int, 5>;           // Hexen/UDMF special arguments
 
+// Unknown/format-specific UDMF keys are preserved verbatim here so a load→save round-trip
+// is lossless even for keys elads does not model with a typed field (see
+// docs/design/03-data-model.md). Empty for classic (binary) maps.
+using KeyVals = std::vector<std::pair<std::string, std::string>>;
+
 struct Vertex {
     util::Vec2 pos;
+    KeyVals extra;
 };
 
 struct Sidedef {
@@ -29,6 +37,7 @@ struct Sidedef {
     std::string upper = kNoTexture;
     std::string middle = kNoTexture;
     std::string lower = kNoTexture;
+    KeyVals extra;
 };
 
 struct Linedef {
@@ -40,6 +49,7 @@ struct Linedef {
     int special = 0;        // 0 for plain Doom action-less lines
     int tag = 0;            // Doom sector tag (UDMF: id)
     Args args{};            // Hexen/UDMF
+    KeyVals extra;
 
     bool twoSided() const { return back != kNoRef; }
 };
@@ -52,6 +62,7 @@ struct Sector {
     int lightLevel = 160;
     int special = 0;
     int tag = 0;
+    KeyVals extra;
 };
 
 struct Thing {
@@ -63,6 +74,7 @@ struct Thing {
     int tid = 0;            // Hexen/UDMF thing id
     int special = 0;        // Hexen/UDMF
     Args args{};
+    KeyVals extra;
 };
 
 } // namespace elads::map

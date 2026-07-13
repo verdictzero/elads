@@ -5,6 +5,8 @@ set(ELADS_TESTS
     test_wad
     test_map_model
     test_render_interface
+    test_doom_map_io
+    test_udmf
 )
 
 foreach(t ${ELADS_TESTS})

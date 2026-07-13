@@ -4,7 +4,7 @@
 namespace elads::map {
 
 int MapModel::addVertex(util::Vec2 pos) {
-    vertices_.push_back(Vertex{pos});
+    vertices_.push_back(Vertex{pos, {}});
     return static_cast<int>(vertices_.size()) - 1;
 }
 int MapModel::addSidedef(Sidedef s) {
