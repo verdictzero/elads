@@ -1,0 +1,66 @@
+name: ci
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Lint the scaffold: shell syntax, and that referenced docs exist.
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shell syntax check (bash -n)
+        run: |
+          set -e
+          for f in scripts/*.sh; do
+            echo "checking $f"
+            bash -n "$f"
+          done
+      - name: Report design-doc coverage (informational)
+        run: |
+          # Design-phase checklist: reports missing docs but does not fail the build.
+          expected="
+            docs/README.md
+            docs/roadmap.md
+            docs/risks.md
+            docs/design/00-overview.md
+            docs/design/01-architecture.md
+            docs/design/02-render-abstraction.md
+            docs/design/03-data-model.md
+            docs/design/04-map-editor.md
+            docs/design/05-text-script-editor.md
+            docs/design/06-graphics-texture-editor.md
+            docs/design/07-build-test-pipeline.md
+            docs/design/08-formats-reference.md
+            docs/design/09-rpi5-target.md
+            docs/design/10-licensing.md
+            LICENSE
+          "
+          for f in $expected; do
+            if [ ! -f "$f" ]; then echo "::warning::design doc not yet present: $f"; else echo "ok: $f"; fi
+          done
+
+  # Prove the scaffold configures + "builds" (stub target) on both arches.
+  scaffold:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ ubuntu-24.04, ubuntu-24.04-arm ]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show toolchain
+        run: |
+          uname -m
+          cmake --version
+          c++ --version | head -1
+      - name: Configure (stub preset)
+        run: cmake --preset stub
+      - name: Build stub target
+        run: cmake --build --preset stub

@@ -1,0 +1,58 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}"
+    },
+    {
+      "name": "stub",
+      "displayName": "Scaffold stub (no deps, configures anywhere)",
+      "description": "Validates the repository scaffold without wxWidgets/OpenGL/Lua. Used by CI and for a quick sanity check.",
+      "inherits": "base",
+      "cacheVariables": {
+        "ELADS_STUB": "ON",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "pi-native",
+      "displayName": "Raspberry Pi 5 native (aarch64, GLES 3.1)",
+      "description": "Native on-device build for the Pi 5. Uses the GLES backend and tunes for Cortex-A76. ELADS_STUB stays ON until feature code lands (Phase 1).",
+      "inherits": "base",
+      "cacheVariables": {
+        "ELADS_STUB": "ON",
+        "ELADS_RENDER_BACKEND": "gles",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_FLAGS": "-mcpu=cortex-a76",
+        "CMAKE_C_COMPILER_LAUNCHER": "ccache",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "ccache"
+      }
+    },
+    {
+      "name": "desktop-linux",
+      "displayName": "Generic Linux desktop (GLES primary)",
+      "description": "x86-64 / arm64 desktop build. GLES backend by default; switch ELADS_RENDER_BACKEND=zink for GL-3.3-class parity on capable GPUs.",
+      "inherits": "base",
+      "cacheVariables": {
+        "ELADS_STUB": "ON",
+        "ELADS_RENDER_BACKEND": "gles",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "arm64-ci",
+      "displayName": "CI on ubuntu-24.04-arm",
+      "description": "Configure-only scaffold check on native arm64 GitHub Actions runners.",
+      "inherits": "stub"
+    }
+  ],
+  "buildPresets": [
+    { "name": "stub", "configurePreset": "stub" },
+    { "name": "pi-native", "configurePreset": "pi-native" },
+    { "name": "desktop-linux", "configurePreset": "desktop-linux" },
+    { "name": "arm64-ci", "configurePreset": "arm64-ci" }
+  ]
+}

@@ -1,0 +1,55 @@
+# Build directories
+/build/
+/build-*/
+/out/
+/cmake-build-*/
+_deps/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+CMakeUserPresets.json
+compile_commands.json
+install_manifest.txt
+
+# ccache / object files
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.d
+
+# Third-party toolchain built by scripts/build-toolchain.sh
+/third_party/build/
+/third_party/install/
+/third_party/src/
+
+# Packaging output
+*.deb
+*.AppImage
+*.flatpak
+/dist/
+
+# Probe output (attach to issues instead of committing)
+/scripts/probe-output/
+*.glxinfo
+*.eglinfo
+*.vulkaninfo
+
+# Editor / OS cruft
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Runtime / user config
+*.log
+/gzdoom.ini

@@ -1,0 +1,107 @@
+# elads
+
+**A unified Doom / ZDoom / GZDoom development environment for Linux — Raspberry Pi 5 first.**
+
+`elads` (SLADE spelled backwards) aims to bring the two tools every Doom modder relies on
+into a **single native GPLv3 application** that runs **hardware-accelerated on a Raspberry Pi 5**:
+
+- the **resource / archive / graphics / code editing** of [SLADE3](https://github.com/sirjuddington/SLADE), and
+- the **2D map editing + 3D visual-mode** authoring of [Ultimate Doom Builder](https://github.com/UltimateDoomBuilder/UltimateDoomBuilder).
+
+> **Status: pre-alpha / design phase.** This repository currently contains the
+> comprehensive internal **design documentation** and **project scaffolding**. No editor
+> feature code has been written yet. See [`docs/`](docs/) for the full design and
+> [`docs/roadmap.md`](docs/roadmap.md) for the plan.
+
+---
+
+## Why this project exists
+
+On the Raspberry Pi 5 there is no good single answer for Doom development:
+
+- **Ultimate Doom Builder** is C#/.NET on Mono (slow, dev-unsupported on Linux) and its
+  renderer needs **desktop OpenGL 3.2 core** — above what the Pi's GPU exposes natively.
+- **SLADE3** fits the Pi far better (C++/wxWidgets, builds on aarch64) but its current
+  `master` renderer now targets **desktop GL 3.3**, and its map editor is secondary to UDB's.
+
+The Raspberry Pi 5's **VideoCore VII** GPU (Mesa V3D) caps **desktop OpenGL at 3.1**, but
+offers **conformant OpenGL ES 3.1** and **conformant Vulkan 1.3**. So the winning move is:
+
+> **Fork SLADE3, replace exactly one subsystem — the renderer — with a GLES 3.1 backend,
+> and grow its map editor toward UDB parity.**
+
+This reuses ~80% of a mature codebase and confines the hard, Pi-specific work to a single
+render-abstraction layer. See [`docs/design/00-overview.md`](docs/design/00-overview.md).
+
+## The environment (planned capabilities)
+
+| Area | Capability | Inspired by |
+|------|-----------|-------------|
+| Archives | WAD / PK3 / PKE / PAK / GRP / RFF read+write, namespaced VFS | SLADE |
+| Graphics | Doom gfx, flats, PNG/WebP, TEXTUREx & ZDoom `TEXTURES`, palette/COLORMAP | SLADE |
+| Code | ZScript / DECORATE / ACS / MAPINFO editor with syntax highlighting | SLADE |
+| Scripting | Lua automation + plugin API | SLADE |
+| Maps (2D) | UDMF / Doom / Hexen geometry editing, sector draw, snapping, error checks | both |
+| Maps (3D) | in-editor "visual mode" walkthrough with real textures, light, fog, slopes | UDB |
+| Build/test | AJBSP + ZDBSP node building, `acc` ACS compile, one-click GZDoom playtest | both |
+
+## Target hardware & platform
+
+- **Primary:** Raspberry Pi 5, 8 GB, aarch64, Raspberry Pi OS (Wayland/labwc).
+  Official **Active Cooler + 27 W USB-C PD** recommended.
+- **Also:** general Linux desktop (x86-64 / arm64). A Zink-over-Vulkan / desktop-GL
+  backend is planned for GL-3.3-class parity on capable GPUs.
+- **Graphics target:** OpenGL **ES 3.1** primary; desktop GL 3.1 and Zink fallbacks.
+
+See [`docs/design/09-rpi5-target.md`](docs/design/09-rpi5-target.md).
+
+## Repository layout
+
+```
+docs/            Design documentation (start at docs/README.md)
+  design/        Numbered design docs (architecture, renderer, formats, RPi5, …)
+  decisions/     Architecture Decision Records (ADRs)
+src/             Source tree skeleton, one dir per architecture module (README stubs)
+  render/        Render Abstraction Layer + GLES / desktop-GL backends (the core investment)
+  archive/       Archive / data core (reuse SLADE src/Archive)
+  mapeditor/     2D + 3D map editor
+  texteditor/    Scintilla code editor
+  graphics/      Graphics & texture editor
+  pipeline/      Node build + ACS compile + playtest pipeline
+  scripting/     Lua/sol2 scripting + plugin system
+  ui/            wxAUI docking shell
+res/             Runtime resources (data-driven lexer configs, GLES shaders, icons)
+cmake/           CMake helper modules
+scripts/         Pi bootstrap, third-party toolchain build, GL probe
+.github/         CI (arm64 GitHub Actions)
+```
+
+## Building
+
+> There is nothing to build yet. When Phase 1 begins, the flow on a Pi 5 will be:
+
+```sh
+scripts/bootstrap-pi.sh          # install apt dependencies (wx 3.2.x, GL/EGL, Lua, …)
+scripts/build-toolchain.sh       # build AJBSP / ZDBSP / acc from source (aarch64)
+cmake --preset pi-native         # configure
+cmake --build --preset pi-native # build
+```
+
+The current skeleton supports a no-op configure to validate the scaffold:
+
+```sh
+cmake -S . -B build -DELADS_STUB=ON && echo "scaffold OK"
+```
+
+## License
+
+**GPLv3.** `elads` derives from SLADE3 (GPLv2-or-later), so the combined work ships under
+the [GNU GPL v3](LICENSE). See [`docs/design/10-licensing.md`](docs/design/10-licensing.md)
+for the full reuse/licensing analysis. `elads` is an independent community project and is not
+affiliated with or endorsed by the SLADE, Ultimate Doom Builder, or GZDoom projects, or with
+id Software / ZeniMax.
+
+## Acknowledgements
+
+Built on the shoulders of SLADE3 (Simon Judd & contributors), Ultimate Doom Builder, GZDoom,
+AJBSP, ZDBSP, `acc`, earcut.hpp, sol2, and the wider Doom modding community.
