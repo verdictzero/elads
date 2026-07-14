@@ -28,6 +28,7 @@ add_library(elads_core STATIC
     graphics/flat.cpp
     graphics/composite.cpp
     graphics/png.cpp
+    graphics/wad_materials.cpp
     mapeditor/view2d/map_view_2d.cpp
     mapeditor/view3d/map_view_3d.cpp
 )

@@ -3,10 +3,15 @@
 //
 // Builds solid 3D geometry from a map — floors/ceilings (earcut) and walls (from linedef +
 // sector heights) — and draws it with a perspective camera through the render abstraction.
-// v1 is untextured, shaded by sector light. Textures/slopes/3D-floors are later stages
-// (docs/design/04-map-editor.md §3). World axes: X = map X, Y = height (up), Z = map Y.
+// Surfaces are textured from a MaterialSet (wall textures + flats), UV-mapped and shaded by
+// sector light; surfaces with no material fall back to flat shaded color. Textures/slopes/
+// 3D-floors progression: docs/design/04-map-editor.md §3. World axes: X = map X, Y = up, Z = map Y.
 #pragma once
 
+#include <string>
+#include <unordered_map>
+
+#include "graphics/material_set.h"
 #include "mapeditor/model/map_model.h"
 #include "render/backend/render_backend.h"
 #include "util/mat4.h"
@@ -31,14 +36,26 @@ Camera3D autoCamera3D(const map::MapModel&, int width, int height);
 
 class MapRenderer3D {
 public:
-    explicit MapRenderer3D(render::IRenderDevice&);
+    // `materials` is optional; when null (or a name is missing) surfaces render flat-shaded.
+    explicit MapRenderer3D(render::IRenderDevice&, const gfx::MaterialSet* materials = nullptr);
     ~MapRenderer3D();
 
     void render(render::IRenderContext&, const map::MapModel&, const Camera3D&);
 
 private:
+    struct Tex {
+        render::TextureHandle handle = render::TextureHandle::Invalid;
+        int w = 64;
+        int h = 64;
+        bool real = false; // true if backed by a material (vs the fallback white texture)
+    };
+    Tex resolve(const std::string& name);
+
     render::IRenderDevice& dev_;
+    const gfx::MaterialSet* materials_ = nullptr;
     render::ShaderHandle program_ = render::ShaderHandle::Invalid;
+    render::TextureHandle white_ = render::TextureHandle::Invalid;
+    std::unordered_map<std::string, Tex> cache_;
 };
 
 } // namespace elads::view

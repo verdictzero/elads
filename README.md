@@ -15,8 +15,9 @@ into a **single native GPLv3 application** that runs **hardware-accelerated on a
 > **validation**; palette, **Doom picture**/**flat** codecs, **TEXTUREx/PNAMES** and
 > **composite-texture assembly**; PNG output; and an **`elads` CLI**. The desktop variant adds
 > an **EGL/OpenGL backend** implementing the render abstraction and **`elads-render`**, which
-> draws a map's **2D top-down** *and* **3D visual-mode** views to a PNG headlessly (proven on
-> Mesa software GL). See [`docs/`](docs/).
+> draws a map's **2D top-down** and **textured 3D visual-mode** views to a PNG headlessly
+> (real wall textures + flats via the archive→TEXTUREx→GL path; proven on Mesa software GL).
+> See [`docs/`](docs/).
 
 ---
 

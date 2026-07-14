@@ -19,9 +19,11 @@ SLADE aggressively, and phase 3D fidelity*.
 > backend-agnostic **2D map renderer** and a **3D visual-mode preview** (`src/mapeditor/view2d`,
 > `view3d`: perspective walls from sector heights + earcut floors/ceilings + depth), and
 > **`elads-render`**, which draws both to a PNG headlessly (verified on Mesa software GL,
-> 16 tests). The **Pi/GLES port** swaps only the backend + shader `#version` behind the same
-> interface. 3D is untextured/light-shaded for now; **textures, slopes, and 3D floors** are the
-> next visual-mode stages.
+> 17 tests). The 3D view is **textured** — real wall textures + flats resolved through the
+> archive→PNAMES/TEXTUREx→GL path (`src/graphics/wad_materials`, `material_set`), UV-mapped and
+> batched per texture, with flat-shaded fallback. The **Pi/GLES port** swaps only the backend +
+> shader `#version` behind the same interface. Next visual-mode stages: **slopes, 3D floors,
+> thing sprites, and dynamic lights**; and an **interactive window** (`elads-view`).
 
 ## Phase 0 — On-device bring-up spike (2–4 weeks)
 

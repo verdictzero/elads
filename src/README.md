@@ -15,7 +15,8 @@ The **GUI/GL-free core** now has its first real, tested code (build with
 - `graphics/` — `image.h` (RGBA8), `palette.{h,cpp}` (PLAYPAL + nearest-color),
   `doom_gfx.{h,cpp}` (Doom picture decode/encode), `flat.{h,cpp}` (flats), `texturex.{h,cpp}`
   (PNAMES + TEXTUREx), `composite.{h,cpp}` (assemble a texture from patches), `png.{h,cpp}`
-  (PNG output via miniz)
+  (PNG output via miniz), `material_set.h` (named RGBA textures/flats), `wad_materials.{h,cpp}`
+  (build a MaterialSet from a WAD: PLAYPAL + patches + TEXTUREx + flats)
 - `render/backend/` — `render_backend.h` (the `IRenderDevice`/`IRenderContext` interface)
 
 **Desktop OpenGL variant** (`ELADS_GL`, needs EGL + libepoxy):
@@ -24,8 +25,9 @@ The **GUI/GL-free core** now has its first real, tested code (build with
   (`GLDevice`/`GLContext` — desktop GL 3.3+ implementation of the abstraction),
   `offscreen.{h,cpp}` (FBO + readback)
 - `mapeditor/view2d/` — `map_view_2d.{h,cpp}` (`MapRenderer2D`, backend-agnostic 2D map view)
-- `mapeditor/view3d/` — `map_view_3d.{h,cpp}` (`MapRenderer3D` + `Camera3D`, 3D visual mode:
-  walls from sector heights, earcut floors/ceilings, perspective + depth)
+- `mapeditor/view3d/` — `map_view_3d.{h,cpp}` (`MapRenderer3D` + `Camera3D`, **textured** 3D
+  visual mode: UV-mapped walls from sector heights, earcut floors/ceilings, per-texture batching,
+  perspective + depth; falls back to flat shading when a texture is missing)
 - `util/mat4.h` — column-major 4×4 matrix math for the 3D camera
 - `app/` — `cli_main.cpp` (the GL-free `elads` CLI), `render_main.cpp` (the `elads-render`
   headless map→PNG tool: `render-demo`/`render-map`/`render-demo3d`/`render-map3d`)
