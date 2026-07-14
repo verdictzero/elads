@@ -8,14 +8,14 @@ into a **single native GPLv3 application** that runs **hardware-accelerated on a
 - the **resource / archive / graphics / code editing** of [SLADE3](https://github.com/sirjuddington/SLADE), and
 - the **2D map editing + 3D visual-mode** authoring of [Ultimate Doom Builder](https://github.com/UltimateDoomBuilder/UltimateDoomBuilder).
 
-> **Status: pre-alpha.** This repository contains the comprehensive internal **design
-> documentation**, the **project scaffolding**, and a working **GUI/GL-free core** with a
-> passing test suite (13 tests): **WAD** and **PK3/zip** archives + **entry-type detection**;
-> the map data model with **classic Doom binary** and **UDMF** map (de)serialization
-> (lossless), **earcut sector triangulation**, and **map validation**; palette, **Doom
-> picture** and **flat** decode/encode, **TEXTUREx/PNAMES** and **composite-texture
-> assembly**; the render-abstraction interface; and an **`elads` CLI**. The GUI/OpenGL layers
-> are not built yet. See [`docs/`](docs/) and [`docs/roadmap.md`](docs/roadmap.md).
+> **Status: pre-alpha.** A working **GUI/GL-free core** (14 tests) plus the first **desktop
+> OpenGL renderer** (Linux x86-64; the Pi/GLES port comes later behind the same abstraction).
+> The core covers **WAD** + **PK3/zip** archives + **entry-type detection**; the map data
+> model with **classic Doom binary** + **UDMF** I/O (lossless), **earcut triangulation**, and
+> **validation**; palette, **Doom picture**/**flat** codecs, **TEXTUREx/PNAMES** and
+> **composite-texture assembly**; PNG output; and an **`elads` CLI**. The desktop variant adds
+> an **EGL/OpenGL backend** implementing the render abstraction and **`elads-render`**, which
+> draws a map's 2D view to a PNG headlessly (proven on Mesa software GL). See [`docs/`](docs/).
 
 ---
 
@@ -88,6 +88,16 @@ scripts/         Pi bootstrap, third-party toolchain build, GL probe
 cmake --preset core          # configure the core library + tests
 cmake --build --preset core  # build (also builds the `elads` CLI)
 ctest --preset core          # run the test suite
+```
+
+**Build the desktop OpenGL variant + render a map to PNG** (needs `libepoxy-dev libegl-dev
+libgl-dev libgles-dev libgbm-dev libgl1-mesa-dri` — see `scripts/bootstrap-desktop.sh`):
+
+```sh
+cmake --preset desktop && cmake --build --preset desktop
+ctest --preset desktop                                   # incl. headless GL render test
+./build/desktop/src/elads-render render-demo demo.png            # sample map -> PNG
+./build/desktop/src/elads-render render-map DOOM.wad E1M1 e1m1.png 1200 900
 ```
 
 Try the CLI (writes a sample WAD with a binary and a UDMF map, then inspects it):

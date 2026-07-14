@@ -14,13 +14,21 @@ The **GUI/GL-free core** now has its first real, tested code (build with
   `sector_tri.{h,cpp}` (boundary tracing + earcut triangulation), `map_checks.{h,cpp}` (validation)
 - `graphics/` — `image.h` (RGBA8), `palette.{h,cpp}` (PLAYPAL + nearest-color),
   `doom_gfx.{h,cpp}` (Doom picture decode/encode), `flat.{h,cpp}` (flats), `texturex.{h,cpp}`
-  (PNAMES + TEXTUREx), `composite.{h,cpp}` (assemble a texture from patches)
+  (PNAMES + TEXTUREx), `composite.{h,cpp}` (assemble a texture from patches), `png.{h,cpp}`
+  (PNG output via miniz)
 - `render/backend/` — `render_backend.h` (the `IRenderDevice`/`IRenderContext` interface)
-- `app/` — `cli_main.cpp` (the `elads` CLI: `wad-info`, `lump-types`, `map-info`, `demo-wad`,
-  `pk3-info`, `demo-pk3`)
 
-Vendored: `third_party/earcut/` (ISC) for sector triangulation; `third_party/miniz/`
-(public domain) for PK3/zip.
+**Desktop OpenGL variant** (`ELADS_GL`, needs EGL + libepoxy):
+
+- `render/gl/` — `egl_headless.{h,cpp}` (surfaceless GL context), `gl_backend.{h,cpp}`
+  (`GLDevice`/`GLContext` — desktop GL 3.3+ implementation of the abstraction),
+  `offscreen.{h,cpp}` (FBO + readback)
+- `mapeditor/view2d/` — `map_view_2d.{h,cpp}` (`MapRenderer2D`, backend-agnostic 2D map view)
+- `app/` — `cli_main.cpp` (the GL-free `elads` CLI), `render_main.cpp` (the `elads-render`
+  headless map→PNG tool)
+
+Vendored: `third_party/earcut/` (ISC) for triangulation; `third_party/miniz/` (public domain)
+for PK3/zip + PNG.
 
 The remaining directories hold a `README.md` describing their responsibility and the SLADE
 source they will reuse or extend; the GUI/OpenGL implementations land in Phase 1.

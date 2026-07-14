@@ -56,11 +56,13 @@ public:
     void bindIndexBuffer(BufferHandle, IndexType) override {}
     void bindUniformBuffer(unsigned, BufferHandle) override {}
     void bindTexture(unsigned, TextureHandle) override {}
+    void setUniformMat4(const char*, const float[16]) override { ++uniforms; }
+    void setUniformVec4(const char*, float, float, float, float) override { ++uniforms; }
     void draw(Topology, uint32_t, uint32_t count) override { drawCalls++; verts += count; }
     void drawIndexed(Topology, uint32_t count, uint32_t) override { drawCalls++; indices += count; }
 
     Viewport lastVp{};
-    int frames = 0, clears = 0, drawCalls = 0;
+    int frames = 0, clears = 0, drawCalls = 0, uniforms = 0;
     uint32_t verts = 0, indices = 0;
 };
 

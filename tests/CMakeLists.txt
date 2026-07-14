@@ -15,6 +15,7 @@ set(ELADS_TESTS
     test_entry_type
     test_pk3
     test_map_checks
+    test_png
 )
 
 foreach(t ${ELADS_TESTS})
@@ -23,3 +24,11 @@ foreach(t ${ELADS_TESTS})
     target_include_directories(${t} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}) # for check.h
     add_test(NAME ${t} COMMAND ${t})
 endforeach()
+
+# GL render test — only when the desktop OpenGL backend is built.
+if(ELADS_GL)
+    add_executable(test_gl_render test_gl_render.cpp)
+    target_link_libraries(test_gl_render PRIVATE elads_render)
+    target_include_directories(test_gl_render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    add_test(NAME test_gl_render COMMAND test_gl_render)
+endif()

@@ -5,16 +5,20 @@ Living plan. Dates are relative effort estimates, not commitments. Priorities:
 SLADE aggressively, and phase 3D fidelity*.
 
 > **Progress:** the design docs + scaffolding are complete, and a substantial **GUI/GL-free
-> core** compiles and passes tests (`cmake --preset core && ctest --preset core`, 13 tests):
+> core** compiles and passes tests (`cmake --preset core && ctest --preset core`, 14 tests):
 > **WAD** and **PK3/zip** archives (via vendored miniz) + **entry-type detection**
 > (`src/archive`); the map data model + **classic Doom binary** and **UDMF** map
 > (de)serialization with lossless round-trip + **earcut sector triangulation** + **map
 > validation** (`src/mapeditor/model`); palette, **Doom picture** and **flat** decode/encode,
-> **TEXTUREx/PNAMES**, and **composite-texture assembly** (`src/graphics`); foundational utils
-> (`src/util`); the render-abstraction **interface** (`src/render/backend`); and an **`elads`
-> CLI** (`wad-info`/`lump-types`/`map-info`/`demo-wad`/`pk3-info`/`demo-pk3`). Next is Phase 0
-> (on-device graphics bring-up), which needs real Pi 5 hardware; remaining off-device work
-> (Hexen-format maps, a Lua scripting binding) is smaller.
+> **TEXTUREx/PNAMES**, **composite-texture assembly**, and **PNG output** (`src/graphics`);
+> foundational utils (`src/util`); the render-abstraction **interface** (`src/render/backend`);
+> and an **`elads` CLI**.
+>
+> **Desktop OpenGL variant** now builds (Linux x86-64, `cmake --preset desktop`, 15 tests): an
+> **EGL + OpenGL 3.3 backend** implementing the render abstraction (`src/render/gl`), a
+> backend-agnostic **2D map renderer** (`src/mapeditor/view2d`), and **`elads-render`**, which
+> draws a map's 2D view to a PNG headlessly (verified on Mesa software GL). The **Pi/GLES port**
+> swaps only the backend + shader `#version` behind the same interface.
 
 ## Phase 0 — On-device bring-up spike (2–4 weeks)
 

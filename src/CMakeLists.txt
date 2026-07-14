@@ -27,6 +27,8 @@ add_library(elads_core STATIC
     graphics/texturex.cpp
     graphics/flat.cpp
     graphics/composite.cpp
+    graphics/png.cpp
+    mapeditor/view2d/map_view_2d.cpp
 )
 
 target_include_directories(elads_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -45,3 +47,24 @@ endif()
 # elads — command-line front-end over the core (no GUI/GL).
 add_executable(elads app/cli_main.cpp)
 target_link_libraries(elads PRIVATE elads_core)
+
+# --- Desktop OpenGL renderer (ELADS_GL) ---------------------------------------------------
+if(ELADS_GL)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(EPOXY REQUIRED IMPORTED_TARGET epoxy)
+    pkg_check_modules(EGL REQUIRED IMPORTED_TARGET egl)
+
+    add_library(elads_render STATIC
+        render/gl/egl_headless.cpp
+        render/gl/gl_backend.cpp
+        render/gl/offscreen.cpp
+    )
+    target_include_directories(elads_render PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(elads_render PUBLIC elads_core PkgConfig::EPOXY PkgConfig::EGL)
+    target_compile_features(elads_render PUBLIC cxx_std_17)
+    target_compile_options(elads_render PRIVATE -Wall -Wextra)
+
+    # elads-render — headless map -> PNG tool.
+    add_executable(elads-render app/render_main.cpp)
+    target_link_libraries(elads-render PRIVATE elads_render)
+endif()

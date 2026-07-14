@@ -18,6 +18,7 @@ project(elads
 
 option(ELADS_STUB "Configure the scaffold only; skip feature build + dependency discovery" ON)
 option(ELADS_CORE "Build the GUI/GL-free core library (util, archive, map model, render interface) + tests" OFF)
+option(ELADS_GL "Also build the desktop OpenGL backend + headless renderer (needs EGL + libepoxy). Implies ELADS_CORE." OFF)
 
 # Render-backend selection (see docs/design/02-render-abstraction.md).
 # GLES 3.1 is the primary, Pi-appropriate target. Others are fallbacks.
@@ -32,9 +33,15 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Build type" FORCE)
 endif()
 
+# ELADS_GL implies ELADS_CORE (the GL renderer builds on top of the core).
+if(ELADS_GL)
+    set(ELADS_CORE ON)
+endif()
+
 message(STATUS "elads ${PROJECT_VERSION}")
 message(STATUS "  ELADS_STUB           = ${ELADS_STUB}")
 message(STATUS "  ELADS_CORE           = ${ELADS_CORE}")
+message(STATUS "  ELADS_GL             = ${ELADS_GL}")
 message(STATUS "  ELADS_RENDER_BACKEND = ${ELADS_RENDER_BACKEND}")
 message(STATUS "  CMAKE_SYSTEM_PROCESSOR = ${CMAKE_SYSTEM_PROCESSOR}")
 

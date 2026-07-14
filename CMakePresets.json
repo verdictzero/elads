@@ -58,6 +58,18 @@
         "ELADS_CORE": "ON",
         "CMAKE_BUILD_TYPE": "Debug"
       }
+    },
+    {
+      "name": "desktop",
+      "displayName": "Desktop variant: core + OpenGL renderer",
+      "description": "Builds the core plus the desktop OpenGL backend, the headless renderer (elads-render), and the GL render test. Needs EGL + libepoxy dev packages.",
+      "inherits": "base",
+      "cacheVariables": {
+        "ELADS_STUB": "OFF",
+        "ELADS_CORE": "ON",
+        "ELADS_GL": "ON",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
     }
   ],
   "buildPresets": [
@@ -65,12 +77,18 @@
     { "name": "pi-native", "configurePreset": "pi-native" },
     { "name": "desktop-linux", "configurePreset": "desktop-linux" },
     { "name": "arm64-ci", "configurePreset": "arm64-ci" },
-    { "name": "core", "configurePreset": "core" }
+    { "name": "core", "configurePreset": "core" },
+    { "name": "desktop", "configurePreset": "desktop" }
   ],
   "testPresets": [
     {
       "name": "core",
       "configurePreset": "core",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "desktop",
+      "configurePreset": "desktop",
       "output": { "outputOnFailure": true }
     }
   ]

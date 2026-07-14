@@ -107,6 +107,10 @@ public:
     virtual void bindUniformBuffer(unsigned slot, BufferHandle) = 0;
     virtual void bindTexture(unsigned unit, TextureHandle) = 0;
 
+    // Named-uniform setters (convenience for simple programs; larger data uses UBOs).
+    virtual void setUniformMat4(const char* name, const float m[16]) = 0;
+    virtual void setUniformVec4(const char* name, float x, float y, float z, float w) = 0;
+
     virtual void draw(Topology, uint32_t firstVertex, uint32_t vertexCount) = 0;
     virtual void drawIndexed(Topology, uint32_t indexCount, uint32_t firstIndex = 0) = 0;
 };
