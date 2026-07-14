@@ -192,6 +192,53 @@ static void testCamera() {
     CHECK(near(ed.camera().centerY, cy + 50.0 / 4.0));
 }
 
+static void testDrawSector() {
+    edit::MapEditor ed(map::MapModel{}); // empty map
+    ed.camera().centerX = 128;
+    ed.camera().centerY = 128;
+    ed.camera().pixelsPerUnit = 2.0;
+    ed.camera().width = 512;
+    ed.camera().height = 512;
+    ed.setMode(edit::MapEditor::Mode::Draw);
+    ed.setGridSnap(false);
+
+    auto click = [&](util::Vec2 world) {
+        const util::Vec2 s = view::worldToScreen(ed.camera(), world);
+        return ed.addDrawPoint(s.x, s.y);
+    };
+
+    // Trace a triangle; no sector yet.
+    CHECK(!click({0, 0}));
+    CHECK(!click({128, 0}));
+    CHECK(!click({64, 128}));
+    CHECK_EQ(ed.drawPoints().size(), static_cast<size_t>(3));
+    CHECK_EQ(ed.model().sectorCount(), static_cast<size_t>(0));
+
+    // Click near the first point -> closes into a sector.
+    CHECK(click({2, 1})); // within the pick radius of (0,0)
+    CHECK_EQ(ed.model().sectorCount(), static_cast<size_t>(1));
+    CHECK_EQ(ed.model().vertexCount(), static_cast<size_t>(3));
+    CHECK_EQ(ed.model().linedefCount(), static_cast<size_t>(3));
+    CHECK(ed.drawPoints().empty()); // loop consumed
+
+    // The whole trace is one undoable step.
+    CHECK(ed.undoLast());
+    CHECK(ed.model().empty());
+
+    // Cancel mid-trace discards points without creating anything.
+    click({0, 0});
+    click({64, 0});
+    CHECK_EQ(ed.drawPoints().size(), static_cast<size_t>(2));
+    ed.cancelDraw();
+    CHECK(ed.drawPoints().empty());
+    CHECK_EQ(ed.model().sectorCount(), static_cast<size_t>(0));
+
+    // Switching modes also clears an in-progress trace.
+    click({10, 10});
+    ed.setMode(edit::MapEditor::Mode::Vertices);
+    CHECK(ed.drawPoints().empty());
+}
+
 static void run() {
     testHoverSelect();
     testModeSwitchClears();
@@ -201,6 +248,7 @@ static void run() {
     testThings();
     testNudge();
     testCamera();
+    testDrawSector();
 }
 
 TEST_MAIN(run())

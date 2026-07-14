@@ -269,6 +269,20 @@ void MapRenderer2D::render(render::IRenderContext& ctx, const map::MapModel& m, 
             drawBatch(hi, render::Topology::Points, 10.f);
         }
     }
+
+    // 6) In-progress draw-sector loop — a hover-coloured polyline through the traced points,
+    // plus a point at each, so the user sees the sector taking shape.
+    if (ov.drawLoop.size() >= 1) {
+        std::vector<MV> line, pts;
+        for (size_t i = 0; i + 1 < ov.drawLoop.size(); ++i) {
+            push(line, ov.drawLoop[i].x, ov.drawLoop[i].y, kHl[0], kHl[1], kHl[2]);
+            push(line, ov.drawLoop[i + 1].x, ov.drawLoop[i + 1].y, kHl[0], kHl[1], kHl[2]);
+        }
+        for (const util::Vec2& p : ov.drawLoop)
+            push(pts, p.x, p.y, kHl[0], kHl[1], kHl[2]);
+        drawBatch(line, render::Topology::Lines);
+        drawBatch(pts, render::Topology::Points, 7.f);
+    }
 }
 
 } // namespace elads::view

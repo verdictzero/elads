@@ -104,6 +104,7 @@ InputFrame GlfwWindow::poll() {
     in.mode2 = edge(GLFW_KEY_2);
     in.mode3 = edge(GLFW_KEY_3);
     in.mode4 = edge(GLFW_KEY_4);
+    in.mode5 = edge(GLFW_KEY_5);
     // Evaluate both separately (not short-circuited) so each key's previous state is updated.
     const bool delKey = edge(GLFW_KEY_DELETE);
     const bool xKey = edge(GLFW_KEY_X);

@@ -12,10 +12,12 @@
 
 namespace elads::view {
 
-// Optional editor overlay: the hovered + selected objects, emphasized on top of the base map.
+// Optional editor overlay: the hovered + selected objects, emphasized on top of the base map,
+// plus an in-progress draw-sector loop (a polyline through the traced points).
 struct MapOverlay {
-    edit::Selection highlight; // hovered object (drawn in the hover colour)
-    edit::Selection selection; // selected object (drawn in the selection colour)
+    edit::Selection highlight;         // hovered object (drawn in the hover colour)
+    edit::Selection selection;         // selected object (drawn in the selection colour)
+    std::vector<util::Vec2> drawLoop;  // draw-sector points traced so far (may be empty)
 };
 
 // A top-down orthographic camera over map space (Doom units; +Y is north/up).

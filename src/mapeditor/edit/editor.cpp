@@ -14,6 +14,7 @@ void MapEditor::setMode(Mode m) {
     selection_ = {};
     highlight_ = {};
     cancelDrag();
+    cancelDraw();
 }
 
 ObjType MapEditor::modeType() const {
@@ -22,6 +23,7 @@ ObjType MapEditor::modeType() const {
         case Mode::Linedefs: return ObjType::Linedef;
         case Mode::Sectors: return ObjType::Sector;
         case Mode::Things: return ObjType::Thing;
+        case Mode::Draw: return ObjType::None;
     }
     return ObjType::Vertex;
 }
@@ -121,6 +123,25 @@ void MapEditor::nudgeSelection(double dx, double dy) {
         const util::Vec2 p = model_.thing(selection_.index).pos;
         setThingPosition(model_, undo_, selection_.index, {p.x + dx, p.y + dy});
     }
+}
+
+bool MapEditor::addDrawPoint(double sx, double sy) {
+    const util::Vec2 p = maybeSnap(screenToWorld(sx, sy));
+    // Close the loop when clicking near the first point with at least a triangle traced.
+    if (drawPoints_.size() >= 3 && (p - drawPoints_.front()).length() <= pickRadiusWorld()) {
+        map::Sector proto;
+        proto.floorHeight = 0;
+        proto.ceilHeight = 128;
+        proto.lightLevel = 160;
+        map::Sidedef side; // textures default to "-"; the user sets them afterwards
+        createSector(model_, undo_, drawPoints_, proto, side);
+        drawPoints_.clear();
+        return true;
+    }
+    // Ignore a duplicate of the last point (e.g. a double click on the same grid cell).
+    if (drawPoints_.empty() || (p - drawPoints_.back()).length() > 1e-6)
+        drawPoints_.push_back(p);
+    return false;
 }
 
 void MapEditor::panPixels(double dxPixels, double dyPixels) {

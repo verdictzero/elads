@@ -160,18 +160,24 @@ void updateCamera3D(view::Camera3D& c, const render::InputFrame& in, double dt) 
     if (in.fallDown) c.y -= speed;
 }
 
-// Apply 2D pointer + keyboard input to the editor (select/drag/pan/zoom + edits).
+// Apply 2D pointer + keyboard input to the editor (select/drag/draw/pan/zoom + edits).
 void handleEditor2D(edit::MapEditor& ed, const render::InputFrame& in) {
-    // Pointer: left = select/drag objects, right = pan, wheel = zoom.
-    if (in.leftClick) {
-        if (!ed.beginDrag(in.cursorX, in.cursorY))
-            ed.clickSelect(in.cursorX, in.cursorY);
-    } else if (in.leftDown && ed.dragging()) {
-        ed.updateDrag(in.cursorX, in.cursorY);
-    } else if (!in.leftDown && ed.dragging()) {
-        ed.endDrag();
+    if (ed.mode() == edit::MapEditor::Mode::Draw) {
+        // Draw mode: each left click drops a loop point; clicking near the first closes it.
+        if (in.leftClick)
+            ed.addDrawPoint(in.cursorX, in.cursorY);
     } else {
-        ed.hover(in.cursorX, in.cursorY);
+        // Pointer: left = select/drag objects, right = pan, wheel = zoom.
+        if (in.leftClick) {
+            if (!ed.beginDrag(in.cursorX, in.cursorY))
+                ed.clickSelect(in.cursorX, in.cursorY);
+        } else if (in.leftDown && ed.dragging()) {
+            ed.updateDrag(in.cursorX, in.cursorY);
+        } else if (!in.leftDown && ed.dragging()) {
+            ed.endDrag();
+        } else {
+            ed.hover(in.cursorX, in.cursorY);
+        }
     }
     if (in.rightDown && (in.cursorDX != 0.0 || in.cursorDY != 0.0))
         ed.panPixels(in.cursorDX, in.cursorDY);
@@ -183,6 +189,7 @@ void handleEditor2D(edit::MapEditor& ed, const render::InputFrame& in) {
     if (in.mode2) ed.setMode(edit::MapEditor::Mode::Linedefs);
     if (in.mode3) ed.setMode(edit::MapEditor::Mode::Sectors);
     if (in.mode4) ed.setMode(edit::MapEditor::Mode::Things);
+    if (in.mode5) ed.setMode(edit::MapEditor::Mode::Draw);
     if (in.del) ed.deleteSelection();
     if (in.undo) ed.undoLast();
     if (in.redo) ed.redoLast();
@@ -279,7 +286,10 @@ int main(int argc, char** argv) {
             if (mode3d) {
                 r3.render(ctx, editor.model(), cam3);
             } else {
-                const view::MapOverlay ov{editor.highlight(), editor.selection()};
+                view::MapOverlay ov;
+                ov.highlight = editor.highlight();
+                ov.selection = editor.selection();
+                ov.drawLoop = editor.drawPoints();
                 r2.render(ctx, editor.model(), editor.camera(), ov);
             }
             ctx.endFrame();
@@ -312,9 +322,10 @@ int main(int argc, char** argv) {
         // --- Interactive loop. ---
         if (mode3d)
             win.setCursorCaptured(true);
-        std::puts("elads-view: Tab=2D/3D  (2D) 1-4=vertex/line/sector/thing modes, LMB=select/drag,"
+        std::puts("elads-view: Tab=2D/3D  (2D) 1-5=vertex/line/sector/thing/draw modes,"
+                  " LMB=select/drag or drop draw point (5=draw: click near start to close),"
                   " RMB=pan, wheel=zoom, X=delete, Z/Y=undo/redo, G=grid snap, F2=save;"
-                  " (3D) WASD+mouse, Q/E=up/down; R=reset, F12=shot, Esc=quit");
+                  " (3D) WASD+mouse, Q/E=up/down; R=reset, F12=shot, Esc=cancel/quit");
         using clock = std::chrono::steady_clock;
         clock::time_point last = clock::now();
         while (!win.shouldClose()) {
@@ -325,8 +336,14 @@ int main(int argc, char** argv) {
             if (dt <= 0.0 || dt > 0.1)
                 dt = 1.0 / 60.0; // clamp startup / stalls to a sane step
 
-            if (in.quit)
-                win.requestClose();
+            if (in.quit) {
+                // Esc cancels an in-progress sector trace first; otherwise it quits.
+                if (!mode3d && editor.mode() == edit::MapEditor::Mode::Draw &&
+                    !editor.drawPoints().empty())
+                    editor.cancelDraw();
+                else
+                    win.requestClose();
+            }
             if (in.reset) {
                 editor.camera() = view::fitCamera(editor.model(), win.width(), win.height());
                 cam3 = view::autoCamera3D(editor.model(), win.width(), win.height());

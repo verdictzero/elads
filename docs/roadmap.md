@@ -39,8 +39,9 @@ SLADE aggressively, and phase 3D fidelity*.
 > **Live 2D editing:** the pieces are now wired into a **`MapEditor` controller**
 > (`src/mapeditor/edit/editor`) — hover/click-select, drag-move vertices/things, delete, nudge,
 > undo/redo, grid snap, and pan/zoom, all driven by screen-space input and unit-tested headless.
-> `elads-view`'s 2D mode binds it to the mouse/keyboard (1–4 edit modes, LMB select/drag, RMB pan,
-> wheel zoom, F2 save) and the 2D renderer draws **things** + a **hover/selection overlay**. Next
+> `elads-view`'s 2D mode binds it to the mouse/keyboard (1–5 edit modes incl. a **draw-sector**
+> tool that traces a new sector, LMB select/drag, RMB pan, wheel zoom, F2 save) and the 2D renderer
+> draws **things** + a **hover/selection overlay** + the in-progress draw loop. Next
 > visual-mode stages: **per-surface texture transforms, thing sprites, colour/fog, 3D floors, and
 > dynamic lights**; then the GLES/Pi backend and the wxWidgets shell.
 

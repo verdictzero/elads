@@ -9,6 +9,8 @@
 // docs/implementation-plan.md.
 #pragma once
 
+#include <vector>
+
 #include "mapeditor/edit/selection.h"
 #include "mapeditor/model/map_model.h"
 #include "mapeditor/view2d/map_view_2d.h"
@@ -19,8 +21,8 @@ namespace elads::edit {
 
 class MapEditor {
 public:
-    // Which object kind clicks and hovers resolve to.
-    enum class Mode { Vertices, Linedefs, Sectors, Things };
+    // Which object kind clicks and hovers resolve to (Draw = trace a new sector).
+    enum class Mode { Vertices, Linedefs, Sectors, Things, Draw };
 
     explicit MapEditor(map::MapModel model) : model_(std::move(model)) {}
 
@@ -60,6 +62,13 @@ public:
     void deleteSelection();                         // delete the selected object (things supported)
     void nudgeSelection(double dx, double dy);      // move selected vertex/thing by a world delta (undoable)
 
+    // --- draw-sector tool (Draw mode) ---
+    // Add a loop point at the cursor (grid-snapped). If >=3 points and the cursor is near the
+    // first point, close the loop into a new sector (undoable) and return true; else return false.
+    bool addDrawPoint(double sx, double sy);
+    void cancelDraw() { drawPoints_.clear(); }
+    const std::vector<util::Vec2>& drawPoints() const { return drawPoints_; }
+
     bool undoLast() { return undo_.undo(); }
     bool redoLast() { return undo_.redo(); }
 
@@ -84,6 +93,8 @@ private:
     bool dragging_ = false;
     Selection dragObj_;
     util::Vec2 dragOrig_;
+
+    std::vector<util::Vec2> drawPoints_; // in-progress draw-sector loop
 };
 
 } // namespace elads::edit

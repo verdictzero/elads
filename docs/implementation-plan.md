@@ -180,8 +180,9 @@ math testable without a window. **Acceptance:** hovering highlights, clicking se
 **Status:** `src/mapeditor/edit/map_edit.{h,cpp}` — `moveVertex(s)`, `setSectorHeights`,
 `setSectorTexture`, `setSidedefTexture`, `setSidedefOffset`, `flipLinedef`, `splitLinedef`,
 `addThing`/`deleteThing`, and `createSector`, each recorded through `util::UndoManager` and
-unit-tested with undo/redo (`test_map_edit`). Still open: `drawSector` with auto-split/merge
-against existing geometry, `joinSectors`, `mergeVertices`, and higher-level trace tools.
+unit-tested with undo/redo (`test_map_edit`). A **draw-sector tool** (trace points, click near the
+start to close) is wired into `elads-view` via `MapEditor` (`test_editor`). Still open: `drawSector`
+**auto-split/merge against existing geometry**, `joinSectors`, and `mergeVertices`.
 
 **Goal:** the actual editor. **Design:** new `src/mapeditor/edit/map_edit.{h,cpp}` — pure operations
 on `MapModel` recorded through the existing `util::UndoManager`:

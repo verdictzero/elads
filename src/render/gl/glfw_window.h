@@ -32,7 +32,7 @@ struct InputFrame {
     bool screenshot = false; // F12
     bool reset = false;      // R (reset camera)
     bool quit = false;       // Esc
-    bool mode1 = false, mode2 = false, mode3 = false, mode4 = false; // 1..4 edit modes
+    bool mode1 = false, mode2 = false, mode3 = false, mode4 = false, mode5 = false; // 1..5 edit modes
     bool del = false;        // Delete / X
     bool undo = false;       // Z
     bool redo = false;       // Y
