@@ -75,7 +75,12 @@ std::vector<archive::Lump> mapLumps(const archive::Wad& wad, int marker) {
     return out;
 }
 
+MapFormat detectMapFormat(const std::vector<archive::Lump>& lumps) {
+    return findLump(lumps, "BEHAVIOR") ? MapFormat::Hexen : MapFormat::Doom;
+}
+
 MapModel readDoomMap(const std::vector<archive::Lump>& lumps) {
+    const MapFormat fmt = detectMapFormat(lumps);
     MapModel m;
 
     if (const auto* v = findLump(lumps, "VERTEXES")) {
@@ -118,14 +123,21 @@ MapModel readDoomMap(const std::vector<archive::Lump>& lumps) {
     }
     if (const auto* ld = findLump(lumps, "LINEDEFS")) {
         util::ByteReader r(ld->data);
-        const size_t n = ld->data.size() / 14;
+        const size_t rec = fmt == MapFormat::Hexen ? 16 : 14;
+        const size_t n = ld->data.size() / rec;
         for (size_t i = 0; i < n; ++i) {
             Linedef l;
             l.v1 = r.u16();
             l.v2 = r.u16();
             l.flags = r.u16();
-            l.special = r.u16();
-            l.tag = r.u16();
+            if (fmt == MapFormat::Hexen) {
+                l.special = r.u8();
+                for (int a = 0; a < 5; ++a)
+                    l.args[static_cast<size_t>(a)] = r.u8();
+            } else {
+                l.special = r.u16();
+                l.tag = r.u16();
+            }
             l.front = refFrom16(r.u16());
             l.back = refFrom16(r.u16());
             m.addLinedef(std::move(l));
@@ -133,39 +145,76 @@ MapModel readDoomMap(const std::vector<archive::Lump>& lumps) {
     }
     if (const auto* th = findLump(lumps, "THINGS")) {
         util::ByteReader r(th->data);
-        const size_t n = th->data.size() / 10;
+        const size_t rec = fmt == MapFormat::Hexen ? 20 : 10;
+        const size_t n = th->data.size() / rec;
         for (size_t i = 0; i < n; ++i) {
             Thing t;
-            const int16_t x = r.i16();
-            const int16_t y = r.i16();
-            t.pos = {static_cast<double>(x), static_cast<double>(y)};
-            t.angle = r.i16();
-            t.type = r.u16();
-            t.flags = r.u16();
+            if (fmt == MapFormat::Hexen) {
+                t.tid = r.i16();
+                const int16_t x = r.i16();
+                const int16_t y = r.i16();
+                t.z = r.i16();
+                t.pos = {static_cast<double>(x), static_cast<double>(y)};
+                t.angle = r.i16();
+                t.type = r.u16();
+                t.flags = r.u16();
+                t.special = r.u8();
+                for (int a = 0; a < 5; ++a)
+                    t.args[static_cast<size_t>(a)] = r.u8();
+            } else {
+                const int16_t x = r.i16();
+                const int16_t y = r.i16();
+                t.pos = {static_cast<double>(x), static_cast<double>(y)};
+                t.angle = r.i16();
+                t.type = r.u16();
+                t.flags = r.u16();
+            }
             m.addThing(std::move(t));
         }
     }
     return m;
 }
 
-std::vector<archive::Lump> writeDoomMap(const MapModel& m) {
+std::vector<archive::Lump> writeMap(const MapModel& m, MapFormat fmt) {
+    const bool hexen = fmt == MapFormat::Hexen;
     util::ByteWriter things, linedefs, sidedefs, vertexes, sectors;
+
+    auto u8clamp = [](int v) { return static_cast<uint8_t>(v < 0 ? 0 : v > 255 ? 255 : v); };
 
     for (size_t i = 0; i < m.thingCount(); ++i) {
         const Thing& t = m.thing(static_cast<int>(i));
-        things.i16(toI16(t.pos.x));
-        things.i16(toI16(t.pos.y));
-        things.i16(static_cast<int16_t>(t.angle));
-        things.u16(static_cast<uint16_t>(t.type));
-        things.u16(static_cast<uint16_t>(t.flags));
+        if (hexen) {
+            things.i16(static_cast<int16_t>(t.tid));
+            things.i16(toI16(t.pos.x));
+            things.i16(toI16(t.pos.y));
+            things.i16(static_cast<int16_t>(t.z));
+            things.i16(static_cast<int16_t>(t.angle));
+            things.u16(static_cast<uint16_t>(t.type));
+            things.u16(static_cast<uint16_t>(t.flags));
+            things.u8(u8clamp(t.special));
+            for (int a = 0; a < 5; ++a)
+                things.u8(u8clamp(t.args[static_cast<size_t>(a)]));
+        } else {
+            things.i16(toI16(t.pos.x));
+            things.i16(toI16(t.pos.y));
+            things.i16(static_cast<int16_t>(t.angle));
+            things.u16(static_cast<uint16_t>(t.type));
+            things.u16(static_cast<uint16_t>(t.flags));
+        }
     }
     for (size_t i = 0; i < m.linedefCount(); ++i) {
         const Linedef& l = m.linedef(static_cast<int>(i));
         linedefs.u16(static_cast<uint16_t>(l.v1));
         linedefs.u16(static_cast<uint16_t>(l.v2));
         linedefs.u16(static_cast<uint16_t>(l.flags));
-        linedefs.u16(static_cast<uint16_t>(l.special));
-        linedefs.u16(static_cast<uint16_t>(l.tag));
+        if (hexen) {
+            linedefs.u8(u8clamp(l.special));
+            for (int a = 0; a < 5; ++a)
+                linedefs.u8(u8clamp(l.args[static_cast<size_t>(a)]));
+        } else {
+            linedefs.u16(static_cast<uint16_t>(l.special));
+            linedefs.u16(static_cast<uint16_t>(l.tag));
+        }
         linedefs.u16(static_cast<uint16_t>(refTo16(l.front)));
         linedefs.u16(static_cast<uint16_t>(refTo16(l.back)));
     }
@@ -194,13 +243,18 @@ std::vector<archive::Lump> writeDoomMap(const MapModel& m) {
         sectors.u16(static_cast<uint16_t>(s.tag));
     }
 
-    return {
+    std::vector<archive::Lump> out = {
         {"THINGS", things.take()},
         {"LINEDEFS", linedefs.take()},
         {"SIDEDEFS", sidedefs.take()},
         {"VERTEXES", vertexes.take()},
         {"SECTORS", sectors.take()},
     };
+    if (hexen)
+        out.push_back({"BEHAVIOR", {}}); // empty ACS marker so the format re-detects as Hexen
+    return out;
 }
+
+std::vector<archive::Lump> writeDoomMap(const MapModel& m) { return writeMap(m, MapFormat::Doom); }
 
 } // namespace elads::map

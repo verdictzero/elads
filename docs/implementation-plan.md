@@ -33,10 +33,10 @@ Built + tested (`cmake --preset core|desktop`; core 19 tests, desktop 22):
   (`elads-view` interactive window + `--auto-screenshot` under Xvfb).
 - **Deps available in dev env:** EGL/GL/epoxy + **GLFW 3.3 + Xvfb** (desktop), miniz, earcut.
 
-Not started: GLES/Pi backend, wxWidgets shell, Hexen maps, Lua bindings, node-build/playtest
-pipeline wiring, wiring picking/editing into the window, and the remaining
-[advanced UDMF](design/11-udmf-advanced.md) visual features (texture transforms, sprites,
-colour/fog, 3D floors, dynamic lights).
+Not started: GLES/Pi backend, wxWidgets shell, Lua bindings, node-build/playtest pipeline wiring,
+and the remaining [advanced UDMF](design/11-udmf-advanced.md) visual features (**3D floors**,
+sky/portals, dynamic lights, models). Picking/editing are wired into `elads-view`'s 2D mode;
+texture transforms, thing sprites (placeholder billboards), colour/fog, and Hexen maps are done.
 
 ## Guiding constraints (apply to every item)
 
@@ -261,9 +261,12 @@ with the `desktop` job (done) + a Pi/arm64 GLES job + packaging jobs. **Deps:** 
 launch capturing `-stdout` for error surfacing (see [07](design/07-build-test-pipeline.md)). **Test:**
 build a small map's nodes; on the Pi, a manual playtest loop. **Acceptance:** "play map" works.
 
-### D2. Hexen-format maps  — **v2, S/M**
-Extend `doom_map_io.cpp` with Hexen THINGS (20B) / LINEDEFS (16B) records + a format flag; round-trip
-test. **D3. Full PK3 VFS** — mount PK3 folders as namespaces in one archive tree (extend `archive`).
+### D2. Hexen-format maps  — **v2, S/M** — ✅ done
+`doom_map_io` reads/writes Hexen THINGS (20B: tid/z/special/args) and LINEDEFS (16B: special+args)
+alongside Doom, auto-detected by a BEHAVIOR lump (`detectMapFormat`, `writeMap(fmt)`); `readDoomMap`
+is now format-aware and save-back preserves the format **and** the compiled ACS BEHAVIOR lump
+(`test_hexen_map`). **D3. Full PK3 VFS** — mount PK3 folders as namespaces in one archive tree
+(extend `archive`).
 **D4. Lua scripting** — vendor Lua 5.4 + sol2; expose Archive/Map/Graphics to scripts (see
 [05](design/05-text-script-editor.md)); a `ScriptManager`; sandboxed. **D5. Textured 2D mode** —
 flats/textures in the top-down view (reuse `MaterialSet` + a textured 2D shader).

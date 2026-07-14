@@ -66,8 +66,30 @@ MapModel loadMapFromWad(const archive::Wad& wad, const std::string& mapName) {
 
 void saveMapToWad(archive::Wad& wad, const std::string& mapName, const MapModel& model, bool udmf,
                   const std::string& namespaceId) {
-    const std::vector<archive::Lump> newLumps = serializeMap(model, udmf, namespaceId);
     const int marker = findMarker(wad, mapName);
+
+    std::vector<archive::Lump> newLumps;
+    if (udmf) {
+        newLumps = serializeMap(model, true, namespaceId);
+    } else {
+        // Preserve the existing binary format (Doom vs Hexen) and, for Hexen, keep the compiled
+        // ACS BEHAVIOR lump so an edit+save doesn't downgrade or blank it.
+        MapFormat fmt = MapFormat::Doom;
+        util::Bytes behavior;
+        if (marker >= 0) {
+            const std::vector<archive::Lump> existing = mapLumps(wad, marker);
+            fmt = detectMapFormat(existing);
+            for (const archive::Lump& l : existing)
+                if (upper(l.name) == "BEHAVIOR")
+                    behavior = l.data;
+        }
+        newLumps = writeMap(model, fmt);
+        if (fmt == MapFormat::Hexen && !behavior.empty())
+            for (archive::Lump& l : newLumps)
+                if (l.name == "BEHAVIOR")
+                    l.data = behavior;
+    }
+
     std::vector<archive::Lump>& L = wad.lumps();
 
     if (marker < 0) {

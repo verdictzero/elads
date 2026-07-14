@@ -31,10 +31,19 @@ std::vector<MapEntry> findMaps(const archive::Wad&);
 // The lumps belonging to the map at `marker` (marker+1 up to the first non-map lump).
 std::vector<archive::Lump> mapLumps(const archive::Wad&, int marker);
 
-// Build a MapModel from a classic Doom map's lumps (looked up by name within `lumps`).
+// Binary map layout: classic Doom (10-byte THINGS, 14-byte LINEDEFS) or Hexen (20-byte THINGS
+// with tid/z/special/args, 16-byte LINEDEFS with special+args), distinguished by a BEHAVIOR lump.
+enum class MapFormat { Doom, Hexen };
+
+// Hexen when the map carries a BEHAVIOR lump (compiled ACS), otherwise Doom.
+MapFormat detectMapFormat(const std::vector<archive::Lump>& lumps);
+
+// Build a MapModel from a binary map's lumps, auto-detecting Doom vs Hexen record layouts.
 MapModel readDoomMap(const std::vector<archive::Lump>& lumps);
 
-// Serialize to the 5 editable Doom lumps, in canonical order.
+// Serialize to the editable binary lumps, in canonical order, in the given format. Hexen also
+// emits an (empty) BEHAVIOR marker so the format re-detects. `writeDoomMap` = Doom format.
+std::vector<archive::Lump> writeMap(const MapModel&, MapFormat);
 std::vector<archive::Lump> writeDoomMap(const MapModel&);
 
 } // namespace elads::map
