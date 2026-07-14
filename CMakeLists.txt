@@ -4,7 +4,7 @@ project(elads
     VERSION 0.0.1
     DESCRIPTION "A unified Doom/ZDoom/GZDoom development environment for Linux (Raspberry Pi 5 first)"
     HOMEPAGE_URL "https://github.com/verdictzero/elads"
-    LANGUAGES CXX)
+    LANGUAGES C CXX)
 
 # ---------------------------------------------------------------------------
 # elads is in the DESIGN phase. No feature source exists yet, so the default

@@ -4,16 +4,17 @@ Living plan. Dates are relative effort estimates, not commitments. Priorities:
 **MVP** → **v1** → **later**. The guiding principle is *de-risk graphics first, reuse
 SLADE aggressively, and phase 3D fidelity*.
 
-> **Progress:** the design docs + scaffolding are complete, and a growing **GUI/GL-free core**
-> compiles and passes tests (`cmake --preset core && ctest --preset core`, 11 tests):
-> lightweight WAD I/O + **entry-type detection** (`src/archive`); the map data model +
-> **classic Doom binary** and **UDMF** map (de)serialization with lossless round-trip +
-> **earcut sector triangulation** (`src/mapeditor/model`); palette, **Doom picture** and
-> **flat** decode/encode, **TEXTUREx/PNAMES**, and **composite-texture assembly**
-> (`src/graphics`); foundational utils (`src/util`); the render-abstraction **interface**
-> (`src/render/backend`); and an **`elads` CLI** (`wad-info`/`lump-types`/`map-info`/`demo-wad`).
-> Next is Phase 0 (on-device graphics bring-up), which needs real Pi 5 hardware; further core
-> work (PK3/zip reading, map validation, Hexen-format maps) can continue off-device.
+> **Progress:** the design docs + scaffolding are complete, and a substantial **GUI/GL-free
+> core** compiles and passes tests (`cmake --preset core && ctest --preset core`, 13 tests):
+> **WAD** and **PK3/zip** archives (via vendored miniz) + **entry-type detection**
+> (`src/archive`); the map data model + **classic Doom binary** and **UDMF** map
+> (de)serialization with lossless round-trip + **earcut sector triangulation** + **map
+> validation** (`src/mapeditor/model`); palette, **Doom picture** and **flat** decode/encode,
+> **TEXTUREx/PNAMES**, and **composite-texture assembly** (`src/graphics`); foundational utils
+> (`src/util`); the render-abstraction **interface** (`src/render/backend`); and an **`elads`
+> CLI** (`wad-info`/`lump-types`/`map-info`/`demo-wad`/`pk3-info`/`demo-pk3`). Next is Phase 0
+> (on-device graphics bring-up), which needs real Pi 5 hardware; remaining off-device work
+> (Hexen-format maps, a Lua scripting binding) is smaller.
 
 ## Phase 0 — On-device bring-up spike (2–4 weeks)
 

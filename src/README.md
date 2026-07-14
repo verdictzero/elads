@@ -7,17 +7,20 @@ The **GUI/GL-free core** now has its first real, tested code (build with
 
 - `util/` — `geometry.h` (Vec2/BBox/segment distance), `byte_io.h` (LE reader/writer), `undo.h`
 - `archive/` — `wad.{h,cpp}` (lightweight WAD read/write, byte-for-byte round-trip),
-  `entry_type.{h,cpp}` (ordered lump-type detection pipeline)
+  `pk3.{h,cpp}` (PK3/zip read/write via miniz, folder→namespace), `entry_type.{h,cpp}`
+  (ordered lump-type detection pipeline)
 - `mapeditor/model/` — `map_objects.h`, `map_model.{h,cpp}` (geometry model + topology/hit-test),
   `doom_map_io.{h,cpp}` (classic Doom binary maps + map discovery), `udmf.{h,cpp}` (UDMF text, lossless),
-  `sector_tri.{h,cpp}` (boundary tracing + earcut triangulation)
+  `sector_tri.{h,cpp}` (boundary tracing + earcut triangulation), `map_checks.{h,cpp}` (validation)
 - `graphics/` — `image.h` (RGBA8), `palette.{h,cpp}` (PLAYPAL + nearest-color),
   `doom_gfx.{h,cpp}` (Doom picture decode/encode), `flat.{h,cpp}` (flats), `texturex.{h,cpp}`
   (PNAMES + TEXTUREx), `composite.{h,cpp}` (assemble a texture from patches)
 - `render/backend/` — `render_backend.h` (the `IRenderDevice`/`IRenderContext` interface)
-- `app/` — `cli_main.cpp` (the `elads` CLI: `wad-info`, `lump-types`, `map-info`, `demo-wad`)
+- `app/` — `cli_main.cpp` (the `elads` CLI: `wad-info`, `lump-types`, `map-info`, `demo-wad`,
+  `pk3-info`, `demo-pk3`)
 
-Vendored: `third_party/earcut/earcut.hpp` (ISC) for sector triangulation.
+Vendored: `third_party/earcut/` (ISC) for sector triangulation; `third_party/miniz/`
+(public domain) for PK3/zip.
 
 The remaining directories hold a `README.md` describing their responsibility and the SLADE
 source they will reuse or extend; the GUI/OpenGL implementations land in Phase 1.

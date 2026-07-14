@@ -15,6 +15,7 @@
 #include <string>
 
 #include "archive/entry_type.h"
+#include "archive/pk3.h"
 #include "archive/wad.h"
 #include "mapeditor/model/doom_map_io.h"
 #include "mapeditor/model/udmf.h"
@@ -93,6 +94,31 @@ int demoWad(const std::string& path) {
     return 0;
 }
 
+int demoPk3(const std::string& path) {
+    archive::Pk3 pk3;
+    pk3.add("MAPINFO", []() {
+        const char* s = "map MAP01 \"Demo\"\n{\n}\n";
+        return util::Bytes(reinterpret_cast<const uint8_t*>(s),
+                           reinterpret_cast<const uint8_t*>(s) + std::char_traits<char>::length(s));
+    }());
+    pk3.add("maps/MAP01.txt", util::Bytes{'h', 'i'});
+    pk3.add("textures/BRICK.dat", util::Bytes{1, 2, 3, 4});
+    writeFile(path, pk3.write(true));
+    std::printf("wrote %s (%zu entries)\n", path.c_str(), pk3.entryCount());
+    return 0;
+}
+
+int pk3Info(const std::string& path) {
+    const archive::Pk3 pk3 = archive::Pk3::read(readFile(path));
+    std::printf("%s: %zu entries\n", path.c_str(), pk3.entryCount());
+    for (const auto& e : pk3.entries()) {
+        const auto type = archive::detectEntryType(e.path, e.data);
+        std::printf("  %-24s %8zu bytes  ns=%-9s %s\n", e.path.c_str(), e.data.size(),
+                    archive::pk3Namespace(e.path).c_str(), archive::entryTypeName(type));
+    }
+    return 0;
+}
+
 int usage() {
     std::puts("elads — Doom dev environment (CLI core)\n");
     std::puts("usage:");
@@ -100,6 +126,8 @@ int usage() {
     std::puts("  elads lump-types <file.wad>");
     std::puts("  elads map-info <file.wad> <MAPNAME>");
     std::puts("  elads demo-wad <out.wad>");
+    std::puts("  elads pk3-info <file.pk3>");
+    std::puts("  elads demo-pk3 <out.pk3>");
     return 2;
 }
 
@@ -181,6 +209,10 @@ int main(int argc, char** argv) {
             return mapInfo(argv[2], argv[3]);
         if (argc >= 3 && std::string(argv[1]) == "demo-wad")
             return demoWad(argv[2]);
+        if (argc >= 3 && std::string(argv[1]) == "pk3-info")
+            return pk3Info(argv[2]);
+        if (argc >= 3 && std::string(argv[1]) == "demo-pk3")
+            return demoPk3(argv[2]);
         return usage();
     } catch (const std::exception& e) {
         std::fprintf(stderr, "error: %s\n", e.what());

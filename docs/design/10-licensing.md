@@ -126,7 +126,8 @@ Legend for **How consumed**:
 | **Scintilla / Lexilla** | **HPND** (Historical Permission Notice and Disclaimer) | link | Permissive, GPL-compatible. Used by the [text editor](05-text-script-editor.md). |
 | **sol2** | **MIT** | link | Permissive, GPL-compatible. Lua binding layer in [scripting](05-text-script-editor.md). |
 | **Lua** 5.4 | **MIT** | link | Permissive, GPL-compatible. |
-| **earcut.hpp** | **ISC** | link | Permissive, GPL-compatible. Sector triangulation for the map renderer. |
+| **earcut.hpp** | **ISC** | link (vendored `third_party/earcut/`) | Permissive, GPL-compatible. Sector triangulation for the map renderer. |
+| **miniz** | **public domain (Unlicense)** | link (vendored `third_party/miniz/`) | No conditions; GPL-compatible. PK3/zip (deflate) read/write. |
 | **AJBSP** | **GPLv2-or-later** | link (embedded node builder) | Same "or later" mechanism as SLADE → fine under GPLv3. |
 | **ZDBSP** | GPLv2-or-later (ZDoom-origin) | **subprocess / bundle** (external node builder) | Aggregation — keeps its own license. Not linked. (32-bit SSE files auto-excluded on aarch64; see [pipeline](07-build-test-pipeline.md).) |
 | **acc** (ACS compiler) | ZDoom-origin permissive/BSD-style source terms | **subprocess / bundle** | Aggregation. ~99% portable C; we invoke it, we don't link it. |

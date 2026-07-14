@@ -13,6 +13,8 @@ set(ELADS_TESTS
     test_flat
     test_composite
     test_entry_type
+    test_pk3
+    test_map_checks
 )
 
 foreach(t ${ELADS_TESTS})
