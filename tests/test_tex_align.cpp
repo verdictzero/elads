@@ -67,12 +67,41 @@ static void testLowerPeg() {
     CHECK(near(map::texV(lowFloor, unpeg, h, 0), 1.0));
 }
 
+// Flat (floor/ceiling) texture transforms: base tiling, pan, scale, rotation.
+static void testFlatUV() {
+    double u, v;
+    // Identity: uv = world / texSize.
+    map::flatUV(64, 128, 64, 64, {}, u, v);
+    CHECK(near(u, 1.0) && near(v, 2.0));
+
+    // Panning shifts by pan/texSize.
+    map::FlatXform pan;
+    pan.panX = 32;
+    pan.panY = 16;
+    map::flatUV(0, 0, 64, 64, pan, u, v);
+    CHECK(near(u, 0.5) && near(v, 0.25));
+
+    // Scale multiplies the tiling.
+    map::FlatXform sc;
+    sc.scaleX = 2;
+    sc.scaleY = 0.5;
+    map::flatUV(64, 64, 64, 64, sc, u, v);
+    CHECK(near(u, 2.0) && near(v, 0.5));
+
+    // 90° rotation maps +x tiling onto +v (u = x*cos - y*sin, v = x*sin + y*cos).
+    map::FlatXform rot;
+    rot.rotRad = M_PI / 2;
+    map::flatUV(64, 0, 64, 64, rot, u, v); // base (1,0) -> (0,1)
+    CHECK(near(u, 0.0) && near(v, 1.0));
+}
+
 static void run() {
     testU();
     testVandYOffset();
     testOneSidedPeg();
     testUpperPeg();
     testLowerPeg();
+    testFlatUV();
 }
 
 TEST_MAIN(run())

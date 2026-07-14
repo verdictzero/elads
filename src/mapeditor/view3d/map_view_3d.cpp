@@ -243,17 +243,22 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
         const Tex ctex = resolve(sec.ceilTex);
         const RGB ftint = withColor(tintFor(ftex.real, sh, 'F'), lc);
         const RGB ctint = withColor(tintFor(ctex.real, sh, 'C'), lc);
+        const map::FlatXform fx = map::sectorFlatXform(sec, /*floor=*/true);
+        const map::FlatXform cx = map::sectorFlatXform(sec, /*floor=*/false);
         auto& fb = batchFor(ftex.handle);
         auto& cb = batchFor(ctex.handle);
         for (size_t i = 0; i + 3 <= t.indices.size(); i += 3) {
             for (int k = 0; k < 3; ++k) {
                 const util::Vec2 p = t.points[t.indices[i + k]];
-                fb.push_back(
-                    vtx(p.x, pl.floor.heightAt(p), p.y, p.x / ftex.w, p.y / ftex.h, ftint));
+                double u, v;
+                map::flatUV(p.x, p.y, ftex.w, ftex.h, fx, u, v);
+                fb.push_back(vtx(p.x, pl.floor.heightAt(p), p.y, u, v, ftint));
             }
             for (int k = 0; k < 3; ++k) {
                 const util::Vec2 p = t.points[t.indices[i + k]];
-                cb.push_back(vtx(p.x, pl.ceil.heightAt(p), p.y, p.x / ctex.w, p.y / ctex.h, ctint));
+                double u, v;
+                map::flatUV(p.x, p.y, ctex.w, ctex.h, cx, u, v);
+                cb.push_back(vtx(p.x, pl.ceil.heightAt(p), p.y, u, v, ctint));
             }
         }
     }

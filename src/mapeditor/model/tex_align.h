@@ -10,6 +10,8 @@
 // scale/rotation and flat panning are a follow-up (they need typed fields promoted from `extra`).
 #pragma once
 
+#include <cmath>
+
 namespace elads::map {
 
 // Classic Doom linedef flags affecting vertical texture pegging.
@@ -51,6 +53,29 @@ inline double texV(double z, double topZ, double texH, double offsetY) {
 // Texture U (columns) at a distance along the wall from its first vertex.
 inline double texU(double distAlong, double texW, double offsetX) {
     return (offsetX + distAlong) / texW;
+}
+
+// A flat (floor/ceiling) texture transform: UDMF pan (world units), scale, and rotation (radians).
+struct FlatXform {
+    double panX = 0.0, panY = 0.0;
+    double scaleX = 1.0, scaleY = 1.0;
+    double rotRad = 0.0;
+};
+
+// Texture coords for a flat at world (wx, wy): base coords in texture tiles, scaled, rotated, then
+// panned. `texW`/`texH` are the texture size (64 for classic Doom flats). Writes u, v.
+inline void flatUV(double wx, double wy, double texW, double texH, const FlatXform& t, double& u,
+                   double& v) {
+    double x = (wx / texW) * t.scaleX;
+    double y = (wy / texH) * t.scaleY;
+    if (t.rotRad != 0.0) {
+        const double c = std::cos(t.rotRad), s = std::sin(t.rotRad);
+        const double rx = x * c - y * s, ry = x * s + y * c;
+        x = rx;
+        y = ry;
+    }
+    u = x + t.panX / texW;
+    v = y + t.panY / texH;
 }
 
 } // namespace elads::map

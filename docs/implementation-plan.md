@@ -86,12 +86,13 @@ gives the expected `heightAt` at the 3 points and interpolates between; headless
 sloped demo (add 3× type-9500 things to `demoMap`) asserts a height gradient in the frame.
 **Deps:** none new. **Acceptance:** `render-demo3d` shows a visibly tilted floor.
 
-### A2. Per-surface texture transforms  — **v1/v2, M** — ✅ walls (first cut)
+### A2. Per-surface texture transforms  — **v1/v2, M** — ✅ walls + flats
 **Status:** `src/mapeditor/model/tex_align.h` — wall UVs from sidedef X/Y offsets and the classic
 `dontpegtop`/`dontpegbottom` peg rules (one-sided middle, upper, lower), evaluated per endpoint so
-sloped walls stay aligned; wired into `map_view_3d`. Anchoring is unit-tested (`test_tex_align`).
-Remaining: UDMF per-surface scale/rotation and flat panning/rotation/scale (need typed fields
-promoted from `extra`), and back-sidedef textures.
+sloped walls stay aligned; and **flat** (floor/ceiling) pan/scale/rotation via `flatUV` +
+`sectorFlatXform` (UDMF `xpanningfloor`/`rotationfloor`/… read losslessly from `extra`). All wired
+into `map_view_3d` and unit-tested (`test_tex_align`). Remaining: UDMF per-**wall** scale/rotation,
+and back-sidedef textures.
 
 **Goal:** honor UDMF `offsetx_*`, `scalex_*`, `rotation*`, panning, plus sidedef `offsetx/offsety`.
 **Design:** promote these from `extra` to typed fields on `Sidedef`/`Sector` (keep writing back).
