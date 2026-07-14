@@ -12,23 +12,30 @@ focused work, M ~2–4, L ~a week+), and **priority** (v1 / v2 / later). Read al
 
 ## 0. Current state (snapshot)
 
-Built + tested (10 commits; `cmake --preset core|desktop`, 17 tests):
+Built + tested (`cmake --preset core|desktop`; core 19 tests, desktop 22):
 - **Archives:** WAD + PK3/zip (`src/archive/{wad,pk3}.cpp`), entry-type detection (`entry_type.cpp`).
 - **Map model:** `src/mapeditor/model/{map_objects.h,map_model.cpp}`; Doom-binary + UDMF I/O
   (`doom_map_io.cpp`, `udmf.cpp`, **lossless** `extra` key/values); `sector_tri.cpp` (earcut);
-  `map_checks.cpp` (validation).
+  `map_checks.cpp` (validation); **slope planes** `planes.cpp` (slope things + `Plane_Align`,
+  `sectorAt`); **save-back** `map_save.cpp` (serialize an edited model into a WAD, in place).
+- **Editing:** `src/mapeditor/edit/{selection,map_edit}.cpp` — `Selection`/`pick`, and undoable
+  operations (move/split/flip, sector & sidedef properties, things, sector authoring) through
+  `util::UndoManager`.
 - **Graphics:** palette, Doom picture, flats, TEXTUREx, composite, PNG, `material_set.h`,
   `wad_materials.cpp` (WAD → RGBA textures).
 - **Render abstraction:** `src/render/backend/render_backend.h` (`IRenderDevice`/`IRenderContext`,
-  `VertexLayout`, depth); **desktop GL backend** `src/render/gl/{egl_headless,gl_backend,offscreen}.cpp`.
-- **Renderers:** `src/mapeditor/view2d/map_view_2d.cpp` (2D), `src/mapeditor/view3d/map_view_3d.cpp`
-  (textured 3D). Tool: `src/app/render_main.cpp` (`elads-render …`).
-- **Deps available in dev env:** EGL/GL/epoxy (desktop), **GLFW 3.3 + Xvfb** (installed, unused yet),
-  miniz, earcut.
+  `VertexLayout`, depth); **desktop GL backend** `src/render/gl/{egl_headless,gl_backend,offscreen}.cpp`;
+  **GLFW window** `glfw_window.cpp`.
+- **Renderers:** `src/mapeditor/view2d/map_view_2d.cpp` (2D, with screen↔world unproject),
+  `src/mapeditor/view3d/map_view_3d.cpp` (textured, slope-aware 3D, with a screen ray).
+- **Tools:** `src/app/render_main.cpp` (`elads-render …` headless PNG), `src/app/view_main.cpp`
+  (`elads-view` interactive window + `--auto-screenshot` under Xvfb).
+- **Deps available in dev env:** EGL/GL/epoxy + **GLFW 3.3 + Xvfb** (desktop), miniz, earcut.
 
-Not started: interactive window, editing, save-back UI, GLES/Pi backend, wxWidgets shell, Hexen
-maps, Lua bindings, node-build/playtest pipeline wiring, and all the [advanced UDMF](design/11-udmf-advanced.md)
-visual features.
+Not started: GLES/Pi backend, wxWidgets shell, Hexen maps, Lua bindings, node-build/playtest
+pipeline wiring, wiring picking/editing into the window, and the remaining
+[advanced UDMF](design/11-udmf-advanced.md) visual features (texture transforms, sprites,
+colour/fog, 3D floors, dynamic lights).
 
 ## Guiding constraints (apply to every item)
 
@@ -46,7 +53,13 @@ visual features.
 
 ## Track A — Visual-mode fidelity (UDB parity)
 
-### A1. Sector slopes  — **v1, M**
+### A1. Sector slopes  — **v1, M** — ✅ done
+**Status:** `src/mapeditor/model/planes.{h,cpp}` (`Plane`, `SectorPlanes`, `computeSectorPlanes`,
+`sectorAt`) with slope things (9500/9501) + `Plane_Align` (181); the 3D renderer evaluates
+per-vertex heights for floors/ceilings and per-endpoint heights for walls. Tests: `test_slopes`;
+demo: `elads-render render-demo-slope3d`. Remaining sources (UDMF vertex `zfloor/zceiling`,
+`Plane_Copy` 118) and 2D slope arrows are still open.
+
 **Goal:** floor/ceiling planes tilt; 3D view renders sloped floors/ceilings/walls.
 **Design:**
 - New `src/mapeditor/model/planes.{h,cpp}`:
@@ -118,7 +131,13 @@ milestone; documented in [11-udmf-advanced](design/11-udmf-advanced.md).
 
 ## Track B — Interactivity & editing
 
-### B1. Interactive window `elads-view`  — **v1, M**
+### B1. Interactive window `elads-view`  — **v1, M** — ✅ done
+**Status:** `src/render/gl/glfw_window.{h,cpp}` + `src/app/view_main.cpp` — a GLFW GL 3.3 window
+rendering the same 2D/3D renderers into the default framebuffer; WASD + mouse-look (3D),
+drag-pan + wheel-zoom (2D), `Tab` toggles, `F12` screenshots, `R` resets, `Esc` quits. The
+`--auto-screenshot`/`--frames` mode is CI-verified under Xvfb (`test_view_window` self-skips with
+no display). Picking/editing are wired in-model (B2/B3) but not yet bound to window input.
+
 **Goal:** a real window with live 2D pan/zoom and 3D fly. **Design:** new `ELADS_WINDOW` option +
 `src/app/view_main.cpp` + `src/render/gl/glfw_window.{h,cpp}` (GLFW 3.3 already installed). GLFW
 creates a GL 3.3 context (GLX/EGL); the **same `GLDevice`/`GLContext`** render into the window's
@@ -129,7 +148,13 @@ non-empty frame (this is the CI-able path). Real interactivity is user-verified 
 **Deps:** GL backend (done). **Acceptance:** `xvfb-run elads-view --demo --auto-screenshot` yields a
 correct window render; on a real desktop you can pan/fly.
 
-### B2. Picking & selection  — **v1, M**
+### B2. Picking & selection  — **v1, M** — ✅ done
+**Status:** `MapModel::nearestThing`, `view2d::screenToWorld`/`worldToScreen`,
+`view3d::screenRay`/`rayHitHeight`, and `edit::{Selection,pick,pickOfType}`
+(`src/mapeditor/edit/selection.{h,cpp}`), with precedence vertex → thing → linedef → sector.
+Pick math is unit-tested headless (`test_pick`). Interactive highlight/hover awaits the window
+binding.
+
 **Goal:** click to select vertices/linedefs/sectors/things. **Design:** reuse the model's
 `nearestVertex`/`nearestLinedef` (already in `map_model.cpp`) + point-in-sector (`sectorAt`, A1);
 add `nearestThing`. Screen→world unproject for 2D (inverse of `cameraOrtho`); for 3D, ray-pick
@@ -138,7 +163,13 @@ indices) held by the editor state. Highlight in the renderers (a bright color ba
 unit-test pick math (screen point → expected object) headless. **Deps:** B1 for interactive; pick
 math testable without a window. **Acceptance:** hovering highlights, clicking selects.
 
-### B3. Editing operations + undo  — **v1, L**
+### B3. Editing operations + undo  — **v1, L** — ✅ (first cut)
+**Status:** `src/mapeditor/edit/map_edit.{h,cpp}` — `moveVertex(s)`, `setSectorHeights`,
+`setSectorTexture`, `setSidedefTexture`, `setSidedefOffset`, `flipLinedef`, `splitLinedef`,
+`addThing`/`deleteThing`, and `createSector`, each recorded through `util::UndoManager` and
+unit-tested with undo/redo (`test_map_edit`). Still open: `drawSector` with auto-split/merge
+against existing geometry, `joinSectors`, `mergeVertices`, and higher-level trace tools.
+
 **Goal:** the actual editor. **Design:** new `src/mapeditor/edit/map_edit.{h,cpp}` — pure operations
 on `MapModel` recorded through the existing `util::UndoManager`:
 `moveVertices`, `insertVertexOnLine`, `splitLinedef`, `drawSector` (trace a new loop, auto-split/merge),
@@ -149,7 +180,13 @@ line-line intersection, point-on-line split, sector-boundary re-trace after edit
 — fully headless, high value. **Deps:** none. **Acceptance:** build a square by drawing, move a
 vertex, undo — all via tested ops.
 
-### B4. Save-back  — **v1, S/M**
+### B4. Save-back  — **v1, S/M** — ✅ done (WAD)
+**Status:** `src/mapeditor/model/map_save.{h,cpp}` — `saveMapToWad` serializes the model into a
+map's lumps (binary via `writeDoomMap`, or a `TEXTMAP`+`ENDMAP` for UDMF), replacing the map's
+data lumps in place while preserving the marker and all non-map lumps; `loadMapFromWad` reads
+either format. Load→edit→save→reload round-trips are tested (`test_map_save`). PK3 save and an
+editor-facing "save file" command remain.
+
 **Goal:** write edits back to disk. **Design:** already have `writeDoomMap` + `writeUdmf` +
 `Wad::write` + `Pk3::write`; add an editor "save" that serializes the current `MapModel` into the
 map's lumps (binary) or TEXTMAP (UDMF), replaces them in the `Wad`/`Pk3`, and writes the file.
@@ -212,16 +249,21 @@ flats/textures in the top-down view (reuse `MaterialSet` + a textured 2D shader)
 
 ## Recommended sequence (when we resume)
 
-1. **A1 Slopes** (flagship UDMF; small, visual, testable) → 2. **B1 elads-view** (makes it usable) →
-3. **B2 Picking** + **B3 Editing ops** + **B4 Save-back** (it becomes an *editor*) →
-4. **A2 texture transforms** + **A5 things/sprites** (visual polish) →
-5. **C1 GLES/Pi backend** (ship the first target) →
-6. **A3 colors/fog**, **A4 3D floors**, **D1 pipeline** →
-7. **C2 wxWidgets shell** (the full app) → **C3 packaging** →
-8. **A6 sky/portals/lights/models**, **B5 action browsers/game configs**, **D2–D5**.
+1. ✅ **A1 Slopes** (flagship UDMF; small, visual, testable) → 2. ✅ **B1 elads-view** (makes it
+usable) → 3. ✅ **B2 Picking** + **B3 Editing ops** + **B4 Save-back** (the model is now an
+*editor*: pick, mutate with undo, save back) → **next:**
+4. **Bind B2/B3 into the B1 window** (hover-highlight, click-select, drag-move, keyboard edits →
+   live authoring) →
+5. **A2 texture transforms** + **A5 things/sprites** (visual polish) →
+6. **C1 GLES/Pi backend** (ship the first target) →
+7. **A3 colors/fog**, **A4 3D floors**, **D1 pipeline** →
+8. **C2 wxWidgets shell** (the full app) → **C3 packaging** →
+9. **A6 sky/portals/lights/models**, **B5 action browsers/game configs**, **D2–D5**.
 
 Rationale: get to a *usable, shippable Pi editor* (slopes + window + edit + save + GLES) before the
 heavier fidelity and full-shell work. Each step stays headless-testable and behind the abstraction.
+Steps 1–3 landed as pure, unit-tested model/edit layers plus the standalone window; step 4 is the
+integration that turns them into interactive authoring.
 
 ## Risks & notes
 - **Slope/plane math** and **sector re-tracing after edits** are the fiddly correctness areas — lean

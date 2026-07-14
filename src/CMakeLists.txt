@@ -20,8 +20,12 @@ add_library(elads_core STATIC
     mapeditor/model/map_model.cpp
     mapeditor/model/doom_map_io.cpp
     mapeditor/model/udmf.cpp
+    mapeditor/model/map_save.cpp
     mapeditor/model/sector_tri.cpp
+    mapeditor/model/planes.cpp
     mapeditor/model/map_checks.cpp
+    mapeditor/edit/selection.cpp
+    mapeditor/edit/map_edit.cpp
     graphics/palette.cpp
     graphics/doom_gfx.cpp
     graphics/texturex.cpp
@@ -69,4 +73,19 @@ if(ELADS_GL)
     # elads-render — headless map -> PNG tool.
     add_executable(elads-render app/render_main.cpp)
     target_link_libraries(elads-render PRIVATE elads_render)
+
+    # --- Interactive window (elads-view), gated on GLFW being available ---------------------
+    pkg_check_modules(GLFW IMPORTED_TARGET glfw3)
+    if(GLFW_FOUND)
+        add_library(elads_window STATIC render/gl/glfw_window.cpp)
+        target_include_directories(elads_window PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+        target_link_libraries(elads_window PUBLIC elads_render PkgConfig::GLFW)
+        target_compile_features(elads_window PUBLIC cxx_std_17)
+        target_compile_options(elads_window PRIVATE -Wall -Wextra)
+
+        add_executable(elads-view app/view_main.cpp)
+        target_link_libraries(elads-view PRIVATE elads_window)
+    else()
+        message(STATUS "elads: GLFW not found — skipping the interactive elads-view target.")
+    endif()
 endif()

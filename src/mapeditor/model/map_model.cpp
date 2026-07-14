@@ -86,4 +86,17 @@ int MapModel::nearestLinedef(util::Vec2 p, double pickRadius) const {
     return best;
 }
 
+int MapModel::nearestThing(util::Vec2 p, double pickRadius) const {
+    int best = kNoRef;
+    double bestDist = pickRadius;
+    for (size_t i = 0; i < things_.size(); ++i) {
+        const double d = (things_[i].pos - p).length();
+        if (d <= bestDist) {
+            bestDist = d;
+            best = static_cast<int>(i);
+        }
+    }
+    return best;
+}
+
 } // namespace elads::map

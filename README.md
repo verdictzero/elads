@@ -8,16 +8,19 @@ into a **single native GPLv3 application** that runs **hardware-accelerated on a
 - the **resource / archive / graphics / code editing** of [SLADE3](https://github.com/sirjuddington/SLADE), and
 - the **2D map editing + 3D visual-mode** authoring of [Ultimate Doom Builder](https://github.com/UltimateDoomBuilder/UltimateDoomBuilder).
 
-> **Status: pre-alpha.** A working **GUI/GL-free core** (14 tests) plus the first **desktop
+> **Status: pre-alpha.** A working **GUI/GL-free core** (19 tests) plus the first **desktop
 > OpenGL renderer** (Linux x86-64; the Pi/GLES port comes later behind the same abstraction).
 > The core covers **WAD** + **PK3/zip** archives + **entry-type detection**; the map data
-> model with **classic Doom binary** + **UDMF** I/O (lossless), **earcut triangulation**, and
-> **validation**; palette, **Doom picture**/**flat** codecs, **TEXTUREx/PNAMES** and
-> **composite-texture assembly**; PNG output; and an **`elads` CLI**. The desktop variant adds
-> an **EGL/OpenGL backend** implementing the render abstraction and **`elads-render`**, which
-> draws a map's **2D top-down** and **textured 3D visual-mode** views to a PNG headlessly
-> (real wall textures + flats via the archive→TEXTUREx→GL path; proven on Mesa software GL).
-> See [`docs/`](docs/).
+> model with **classic Doom binary** + **UDMF** I/O (lossless), **earcut triangulation**,
+> **validation**, **sector slopes** (slope things + `Plane_Align`), and **save-back** into a
+> WAD; an **editing layer** — undoable operations (move/split/flip, properties, things, sector
+> authoring) + **picking/selection**; palette, **Doom picture**/**flat** codecs,
+> **TEXTUREx/PNAMES** and **composite-texture assembly**; PNG output; and an **`elads` CLI**.
+> The desktop variant adds an **EGL/OpenGL backend** implementing the render abstraction,
+> **`elads-render`** (draws **2D top-down** and **textured, slope-aware 3D visual-mode** views
+> to a PNG headlessly — real wall textures + flats via the archive→TEXTUREx→GL path, proven on
+> Mesa software GL), and **`elads-view`**, an interactive GLFW window running the same renderers
+> (with a headless `--auto-screenshot` mode). See [`docs/`](docs/).
 
 ---
 
@@ -100,8 +103,18 @@ cmake --preset desktop && cmake --build --preset desktop
 ctest --preset desktop                                   # incl. headless GL render test
 ./build/desktop/src/elads-render render-demo   demo.png          # 2D top-down -> PNG
 ./build/desktop/src/elads-render render-demo3d demo3d.png        # 3D visual mode -> PNG
+./build/desktop/src/elads-render render-demo-slope3d slope.png   # 3D with a sloped floor
 ./build/desktop/src/elads-render render-map   DOOM.wad E1M1 e1m1.png 1200 900
 ./build/desktop/src/elads-render render-map3d DOOM.wad E1M1 e1m1_3d.png 1200 900
+```
+
+**Run the interactive viewport** (`elads-view`, needs `libglfw3-dev`; WASD + mouse-look in 3D,
+drag-pan + wheel-zoom in 2D, `Tab` toggles, `F12` screenshots):
+
+```sh
+./build/desktop/src/elads-view --demo-slope                      # a window on a demo map
+./build/desktop/src/elads-view DOOM.wad E1M1                     # a window on a real map
+xvfb-run -a ./build/desktop/src/elads-view --demo --auto-screenshot shot.png  # headless
 ```
 
 Try the CLI (writes a sample WAD with a binary and a UDMF map, then inspects it):

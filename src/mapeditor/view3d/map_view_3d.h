@@ -34,6 +34,20 @@ struct Camera3D {
 // Place a camera inside the map looking toward its centre (a sensible establishing shot).
 Camera3D autoCamera3D(const map::MapModel&, int width, int height);
 
+// A world-space ray (origin + unit direction). World axes: X = map X, Y = up, Z = map Y.
+struct Ray3D {
+    double ox = 0, oy = 0, oz = 0; // origin (camera position)
+    double dx = 0, dy = 0, dz = 0; // unit direction
+};
+
+// Ray through screen pixel (origin top-left, +y down) for the given camera. Consistent with
+// Camera3D::viewProj so a rendered pixel and its pick ray agree (used for 3D picking, B2).
+Ray3D screenRay(const Camera3D&, double screenX, double screenY);
+
+// Intersect a ray with the horizontal plane Y = height. On a hit in front of the camera,
+// writes the map-space (x, y) = world (x, z) of the intersection and returns true.
+bool rayHitHeight(const Ray3D&, double height, util::Vec2& outMap);
+
 class MapRenderer3D {
 public:
     // `materials` is optional; when null (or a name is missing) surfaces render flat-shaded.

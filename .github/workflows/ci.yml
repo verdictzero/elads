@@ -94,14 +94,15 @@ jobs:
       EGL_PLATFORM: surfaceless
     steps:
       - uses: actions/checkout@v4
-      - name: Install GL dev + software renderer
+      - name: Install GL dev + software renderer + GLFW/Xvfb
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            libepoxy-dev libegl-dev libgl-dev libgles-dev libgbm-dev libgl1-mesa-dri
+            libepoxy-dev libegl-dev libgl-dev libgles-dev libgbm-dev libgl1-mesa-dri \
+            libglfw3-dev xvfb
       - name: Configure (desktop preset)
         run: cmake --preset desktop
-      - name: Build desktop (core + GL renderer)
+      - name: Build desktop (core + GL renderer + elads-view)
         run: cmake --build --preset desktop
-      - name: Run tests (ctest, incl. headless GL render)
-        run: ctest --preset desktop
+      - name: Run tests (ctest, incl. headless GL render + windowed viewport under Xvfb)
+        run: xvfb-run -a ctest --preset desktop

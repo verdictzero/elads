@@ -26,6 +26,11 @@ Camera2D fitCamera(const map::MapModel&, int width, int height, double marginFra
 // Column-major orthographic matrix mapping the camera's world rect to NDC.
 void cameraOrtho(const Camera2D&, float outMat[16]);
 
+// Convert a screen pixel (origin top-left, +x right, +y down) to world coordinates, and back.
+// Inverse of the ortho projection; used for hit-testing / picking (see docs/design/04 §2).
+util::Vec2 screenToWorld(const Camera2D&, double screenX, double screenY);
+util::Vec2 worldToScreen(const Camera2D&, util::Vec2 world);
+
 // Renders sector fills, linedefs, vertices, and a grid for `map` via the render context.
 // Owns its shader program (created from the device on construction).
 class MapRenderer2D {

@@ -71,6 +71,46 @@ map::MapModel demoMap() {
     return m;
 }
 
+// A square room whose floor is tilted by three floor slope things (type 9500) — exercises the
+// A1 slope path (planes.cpp) end-to-end in the 3D view.
+map::MapModel slopeDemoMap() {
+    map::MapModel m;
+    const double s = 512;
+    m.addVertex({0, 0});
+    m.addVertex({s, 0});
+    m.addVertex({s, s});
+    m.addVertex({0, s});
+    map::Sector sec;
+    sec.floorHeight = 0;
+    sec.ceilHeight = 192;
+    sec.floorTex = "FLOOR";
+    sec.ceilTex = "CEIL";
+    m.addSector(sec);
+    for (int i = 0; i < 4; ++i) {
+        map::Sidedef sd;
+        sd.sector = 0;
+        sd.middle = "BRICK";
+        const int side = m.addSidedef(sd);
+        map::Linedef l;
+        l.v1 = i;
+        l.v2 = (i + 1) % 4;
+        l.front = side;
+        m.addLinedef(l);
+    }
+    // Floor slope things: low at the near corner, high along +x, mid along +y.
+    auto slopeThing = [&](double x, double y, double z) {
+        map::Thing t;
+        t.pos = {x, y};
+        t.z = z;
+        t.type = 9500;
+        m.addThing(t);
+    };
+    slopeThing(32, 32, 0);
+    slopeThing(s - 32, 32, 160);
+    slopeThing(32, s - 32, 64);
+    return m;
+}
+
 int renderToPng(const map::MapModel& model, int w, int h, const std::string& out) {
     std::string err;
     render::HeadlessGL gl;
@@ -200,6 +240,7 @@ int usage() {
     std::puts("  elads-render render-demo   <out.png> [w h]        2D top-down");
     std::puts("  elads-render render-map    <file.wad> <MAP> <out.png> [w h]");
     std::puts("  elads-render render-demo3d <out.png> [w h]        3D visual mode");
+    std::puts("  elads-render render-demo-slope3d <out.png> [w h]  3D visual mode, sloped floor");
     std::puts("  elads-render render-map3d  <file.wad> <MAP> <out.png> [w h]");
     return 2;
 }
@@ -227,6 +268,12 @@ int main(int argc, char** argv) {
             const int h = argc >= 5 ? std::atoi(argv[4]) : 600;
             const gfx::MaterialSet mats = makeDemoMaterials();
             return render3DToPng(demoMap(), w, h, argv[2], &mats);
+        }
+        if (cmd == "render-demo-slope3d" && argc >= 3) {
+            const int w = argc >= 5 ? std::atoi(argv[3]) : 900;
+            const int h = argc >= 5 ? std::atoi(argv[4]) : 600;
+            const gfx::MaterialSet mats = makeDemoMaterials();
+            return render3DToPng(slopeDemoMap(), w, h, argv[2], &mats);
         }
         if (cmd == "render-map3d" && argc >= 5) {
             const int w = argc >= 7 ? std::atoi(argv[5]) : 900;

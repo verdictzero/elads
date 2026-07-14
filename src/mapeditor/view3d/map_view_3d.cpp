@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "mapeditor/model/planes.h"
 #include "mapeditor/model/sector_tri.h"
 
 namespace elads::view {
@@ -105,6 +106,42 @@ Camera3D autoCamera3D(const map::MapModel& m, int width, int height) {
     return cam;
 }
 
+Ray3D screenRay(const Camera3D& c, double screenX, double screenY) {
+    const double aspect = c.height > 0 ? static_cast<double>(c.width) / c.height : 1.0;
+    const double tanHalf = std::tan(c.fovY * 0.5);
+    const double ndcX = c.width > 0 ? (screenX / c.width) * 2.0 - 1.0 : 0.0;
+    const double ndcY = c.height > 0 ? 1.0 - (screenY / c.height) * 2.0 : 0.0;
+
+    // World-space camera basis matching Camera3D::viewProj (rotateX(-pitch)*rotateY(-yaw)).
+    const double cp = std::cos(c.pitch), sp = std::sin(c.pitch);
+    const double cy = std::cos(c.yaw), sy = std::sin(c.yaw);
+    const double fx = -sy * cp, fy = sp, fz = -cy * cp;       // forward (view -Z)
+    const double rx = cy, ry = 0.0, rz = -sy;                 // right (view +X)
+    const double ux = sy * sp, uy = cp, uz = cy * sp;         // up (view +Y)
+
+    const double sX = ndcX * aspect * tanHalf, sY = ndcY * tanHalf;
+    double dx = fx + sX * rx + sY * ux;
+    double dy = fy + sX * ry + sY * uy;
+    double dz = fz + sX * rz + sY * uz;
+    const double len = std::sqrt(dx * dx + dy * dy + dz * dz);
+    if (len > 1e-12) {
+        dx /= len;
+        dy /= len;
+        dz /= len;
+    }
+    return Ray3D{c.x, c.y, c.z, dx, dy, dz};
+}
+
+bool rayHitHeight(const Ray3D& r, double height, util::Vec2& outMap) {
+    if (std::fabs(r.dy) < 1e-9)
+        return false; // parallel to the plane
+    const double t = (height - r.oy) / r.dy;
+    if (t < 0.0)
+        return false; // behind the camera
+    outMap = {r.ox + r.dx * t, r.oz + r.dz * t};
+    return true;
+}
+
 MapRenderer3D::MapRenderer3D(render::IRenderDevice& device, const gfx::MaterialSet* materials)
     : dev_(device), materials_(materials) {
     program_ = dev_.createProgram(render::ShaderSources{kVert, kFrag});
@@ -158,9 +195,14 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
         return TV{(float)x, (float)y, (float)z, (float)u, (float)v, t.r, t.g, t.b};
     };
 
+    // Sector floor/ceiling planes (flat unless a slope source applies). Evaluated per-vertex so
+    // sloped surfaces tilt; flat sectors reduce to a constant height.
+    const std::vector<map::SectorPlanes> planes = map::computeSectorPlanes(m);
+
     // Floors + ceilings.
     for (int s = 0; s < static_cast<int>(m.sectorCount()); ++s) {
         const map::Sector& sec = m.sector(s);
+        const map::SectorPlanes& pl = planes[static_cast<size_t>(s)];
         const map::Triangulation t = map::triangulateSector(m, s);
         const float sh = shade(sec.lightLevel);
         const Tex ftex = resolve(sec.floorTex);
@@ -172,30 +214,34 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
         for (size_t i = 0; i + 3 <= t.indices.size(); i += 3) {
             for (int k = 0; k < 3; ++k) {
                 const util::Vec2 p = t.points[t.indices[i + k]];
-                fb.push_back(vtx(p.x, sec.floorHeight, p.y, p.x / ftex.w, p.y / ftex.h, ftint));
+                fb.push_back(
+                    vtx(p.x, pl.floor.heightAt(p), p.y, p.x / ftex.w, p.y / ftex.h, ftint));
             }
             for (int k = 0; k < 3; ++k) {
                 const util::Vec2 p = t.points[t.indices[i + k]];
-                cb.push_back(vtx(p.x, sec.ceilHeight, p.y, p.x / ctex.w, p.y / ctex.h, ctint));
+                cb.push_back(vtx(p.x, pl.ceil.heightAt(p), p.y, p.x / ctex.w, p.y / ctex.h, ctint));
             }
         }
     }
 
-    // Walls (one wall quad helper, with UV = distance-along / height).
-    auto wall = [&](util::Vec2 a, util::Vec2 b, double zBot, double zTop, const Tex& tex, RGB tint) {
-        if (zTop <= zBot)
-            return;
+    // Wall quad with independent per-endpoint bottom/top heights (so it follows sloped floors
+    // and ceilings). UV: U = distance-along / tex.w, V from each endpoint's own height span.
+    auto wall = [&](util::Vec2 a, util::Vec2 b, double zBotA, double zTopA, double zBotB,
+                    double zTopB, const Tex& tex, RGB tint) {
+        if (zTopA <= zBotA && zTopB <= zBotB)
+            return; // degenerate at both ends
         const double len = (b - a).length();
         const double uMax = len / tex.w;
-        const double vMax = (zTop - zBot) / tex.h;
+        const double vA = (zTopA - zBotA) / tex.h;
+        const double vB = (zTopB - zBotB) / tex.h;
         auto& batch = batchFor(tex.handle);
         // two triangles: (a,bot)-(b,bot)-(b,top) and (a,bot)-(b,top)-(a,top)
-        batch.push_back(vtx(a.x, zBot, a.y, 0, vMax, tint));
-        batch.push_back(vtx(b.x, zBot, b.y, uMax, vMax, tint));
-        batch.push_back(vtx(b.x, zTop, b.y, uMax, 0, tint));
-        batch.push_back(vtx(a.x, zBot, a.y, 0, vMax, tint));
-        batch.push_back(vtx(b.x, zTop, b.y, uMax, 0, tint));
-        batch.push_back(vtx(a.x, zTop, a.y, 0, 0, tint));
+        batch.push_back(vtx(a.x, zBotA, a.y, 0, vA, tint));
+        batch.push_back(vtx(b.x, zBotB, b.y, uMax, vB, tint));
+        batch.push_back(vtx(b.x, zTopB, b.y, uMax, 0, tint));
+        batch.push_back(vtx(a.x, zBotA, a.y, 0, vA, tint));
+        batch.push_back(vtx(b.x, zTopB, b.y, uMax, 0, tint));
+        batch.push_back(vtx(a.x, zTopA, a.y, 0, 0, tint));
     };
 
     for (int i = 0; i < static_cast<int>(m.linedefCount()); ++i) {
@@ -208,23 +254,31 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
         const util::Vec2 a = m.vertex(l.v1).pos;
         const util::Vec2 b = m.vertex(l.v2).pos;
         const map::Sector& f = m.sector(fs);
+        const map::SectorPlanes& fp = planes[static_cast<size_t>(fs)];
         const map::Sidedef& side = m.sidedef(l.front);
         const float sh = shade(f.lightLevel);
         const int bsIdx = m.backSector(l);
         if (bsIdx == map::kNoRef) {
             const Tex tex = resolve(side.middle);
-            wall(a, b, f.floorHeight, f.ceilHeight, tex, tintFor(tex.real, sh, 'W'));
+            wall(a, b, fp.floor.heightAt(a), fp.ceil.heightAt(a), fp.floor.heightAt(b),
+                 fp.ceil.heightAt(b), tex, tintFor(tex.real, sh, 'W'));
         } else {
-            const map::Sector& bk = m.sector(bsIdx);
-            if (bk.floorHeight > f.floorHeight || f.floorHeight > bk.floorHeight) {
+            const map::SectorPlanes& bp = planes[static_cast<size_t>(bsIdx)];
+            // Lower step: between the two floor planes (bottom = lower plane, top = higher).
+            const double fFA = fp.floor.heightAt(a), bFA = bp.floor.heightAt(a);
+            const double fFB = fp.floor.heightAt(b), bFB = bp.floor.heightAt(b);
+            if (fFA != bFA || fFB != bFB) {
                 const Tex tex = resolve(side.lower);
-                wall(a, b, std::min(f.floorHeight, bk.floorHeight),
-                     std::max(f.floorHeight, bk.floorHeight), tex, tintFor(tex.real, sh, 'S'));
+                wall(a, b, std::min(fFA, bFA), std::max(fFA, bFA), std::min(fFB, bFB),
+                     std::max(fFB, bFB), tex, tintFor(tex.real, sh, 'S'));
             }
-            if (bk.ceilHeight != f.ceilHeight) {
+            // Upper: between the two ceiling planes.
+            const double fCA = fp.ceil.heightAt(a), bCA = bp.ceil.heightAt(a);
+            const double fCB = fp.ceil.heightAt(b), bCB = bp.ceil.heightAt(b);
+            if (fCA != bCA || fCB != bCB) {
                 const Tex tex = resolve(side.upper);
-                wall(a, b, std::min(f.ceilHeight, bk.ceilHeight),
-                     std::max(f.ceilHeight, bk.ceilHeight), tex, tintFor(tex.real, sh, 'S'));
+                wall(a, b, std::min(fCA, bCA), std::max(fCA, bCA), std::min(fCB, bCB),
+                     std::max(fCB, bCB), tex, tintFor(tex.real, sh, 'S'));
             }
         }
     }

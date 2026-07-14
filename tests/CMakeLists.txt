@@ -10,6 +10,10 @@ set(ELADS_TESTS
     test_doom_gfx
     test_texturex
     test_sector_tri
+    test_slopes
+    test_pick
+    test_map_edit
+    test_map_save
     test_flat
     test_composite
     test_entry_type
@@ -34,4 +38,13 @@ if(ELADS_GL)
         target_include_directories(${t} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
         add_test(NAME ${t} COMMAND ${t})
     endforeach()
+
+    # Interactive-window test — needs GLFW. Self-skips when no display is present, so it is
+    # safe to run headless; run it under xvfb-run to exercise the real window path.
+    if(TARGET elads_window)
+        add_executable(test_view_window test_view_window.cpp)
+        target_link_libraries(test_view_window PRIVATE elads_window)
+        target_include_directories(test_view_window PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+        add_test(NAME test_view_window COMMAND test_view_window)
+    endif()
 endif()

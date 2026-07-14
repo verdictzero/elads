@@ -85,6 +85,22 @@ void cameraOrtho(const Camera2D& c, float m[16]) {
     m[15] = 1.f;
 }
 
+util::Vec2 screenToWorld(const Camera2D& c, double screenX, double screenY) {
+    const double halfW = (c.width / 2.0) / c.pixelsPerUnit;
+    const double halfH = (c.height / 2.0) / c.pixelsPerUnit;
+    const double ndcX = c.width > 0 ? (screenX / c.width) * 2.0 - 1.0 : 0.0;
+    const double ndcY = c.height > 0 ? 1.0 - (screenY / c.height) * 2.0 : 0.0; // flip: +y is up
+    return {c.centerX + ndcX * halfW, c.centerY + ndcY * halfH};
+}
+
+util::Vec2 worldToScreen(const Camera2D& c, util::Vec2 world) {
+    const double halfW = (c.width / 2.0) / c.pixelsPerUnit;
+    const double halfH = (c.height / 2.0) / c.pixelsPerUnit;
+    const double ndcX = halfW > 0 ? (world.x - c.centerX) / halfW : 0.0;
+    const double ndcY = halfH > 0 ? (world.y - c.centerY) / halfH : 0.0;
+    return {(ndcX + 1.0) * 0.5 * c.width, (1.0 - ndcY) * 0.5 * c.height};
+}
+
 MapRenderer2D::MapRenderer2D(render::IRenderDevice& device) : dev_(device) {
     program_ = dev_.createProgram(render::ShaderSources{kVert, kFrag});
 }

@@ -43,9 +43,15 @@ public:
     const Thing& thing(int i) const { return things_.at(static_cast<size_t>(i)); }
 
     std::vector<Vertex>& vertices() { return vertices_; }
+    std::vector<Sidedef>& sidedefs() { return sidedefs_; }
     std::vector<Linedef>& linedefs() { return linedefs_; }
+    std::vector<Sector>& sectors() { return sectors_; }
+    std::vector<Thing>& things() { return things_; }
     const std::vector<Vertex>& vertices() const { return vertices_; }
+    const std::vector<Sidedef>& sidedefs() const { return sidedefs_; }
     const std::vector<Linedef>& linedefs() const { return linedefs_; }
+    const std::vector<Sector>& sectors() const { return sectors_; }
+    const std::vector<Thing>& things() const { return things_; }
 
     void clear();
     bool empty() const;
@@ -61,6 +67,8 @@ public:
     int nearestVertex(util::Vec2 p, double pickRadius) const;
     // Nearest linedef to p within pickRadius (perpendicular distance); kNoRef if none.
     int nearestLinedef(util::Vec2 p, double pickRadius) const;
+    // Nearest thing to p within pickRadius (map units); kNoRef if none.
+    int nearestThing(util::Vec2 p, double pickRadius) const;
 
 private:
     std::vector<Vertex> vertices_;

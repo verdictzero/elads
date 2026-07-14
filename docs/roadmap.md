@@ -14,16 +14,29 @@ SLADE aggressively, and phase 3D fidelity*.
 > foundational utils (`src/util`); the render-abstraction **interface** (`src/render/backend`);
 > and an **`elads` CLI**.
 >
-> **Desktop OpenGL variant** now builds (Linux x86-64, `cmake --preset desktop`, 15 tests): an
+> **Desktop OpenGL variant** builds (Linux x86-64, `cmake --preset desktop`, 22 tests): an
 > **EGL + OpenGL 3.3 backend** implementing the render abstraction (`src/render/gl`), a
 > backend-agnostic **2D map renderer** and a **3D visual-mode preview** (`src/mapeditor/view2d`,
 > `view3d`: perspective walls from sector heights + earcut floors/ceilings + depth), and
-> **`elads-render`**, which draws both to a PNG headlessly (verified on Mesa software GL,
-> 17 tests). The 3D view is **textured** — real wall textures + flats resolved through the
+> **`elads-render`**, which draws both to a PNG headlessly (verified on Mesa software GL).
+> The 3D view is **textured** — real wall textures + flats resolved through the
 > archive→PNAMES/TEXTUREx→GL path (`src/graphics/wad_materials`, `material_set`), UV-mapped and
 > batched per texture, with flat-shaded fallback. The **Pi/GLES port** swaps only the backend +
-> shader `#version` behind the same interface. Next visual-mode stages: **slopes, 3D floors,
-> thing sprites, and dynamic lights**; and an **interactive window** (`elads-view`).
+> shader `#version` behind the same interface.
+>
+> **Editor milestone (core: 19 tests):** **sector slopes** — floor/ceiling *planes* from slope
+> things (9500/9501) and `Plane_Align` (181), evaluated per-vertex so the 3D view tilts
+> (`src/mapeditor/model/planes`); **picking** — screen→world unproject (2D) + a screen ray with
+> floor-plane intersection (3D) + `Selection`/`pick` precedence (`src/mapeditor/edit/selection`);
+> **editing operations + undo** — move/split/flip, sector & sidedef properties, things, and
+> sector authoring, all recorded through `util::UndoManager` (`src/mapeditor/edit/map_edit`);
+> and **save-back** — serialize an edited model into a WAD's map lumps (binary or UDMF TEXTMAP),
+> replacing them in place and preserving non-map lumps (`src/mapeditor/model/map_save`). An
+> **interactive window** — `elads-view` (`src/render/gl/glfw_window`, `src/app/view_main`) —
+> renders the same 2D/3D renderers into a GLFW GL 3.3 window (WASD/mouse-look, pan/zoom, Tab
+> toggle, F12 screenshot), with an `--auto-screenshot` mode verified headless under Xvfb. Next
+> visual-mode stages: **per-surface texture transforms, thing sprites, colour/fog, 3D floors,
+> and dynamic lights**; and wiring picking/editing into the window for live authoring.
 
 ## Phase 0 — On-device bring-up spike (2–4 weeks)
 
