@@ -33,10 +33,16 @@ SLADE aggressively, and phase 3D fidelity*.
 > and **save-back** — serialize an edited model into a WAD's map lumps (binary or UDMF TEXTMAP),
 > replacing them in place and preserving non-map lumps (`src/mapeditor/model/map_save`). An
 > **interactive window** — `elads-view` (`src/render/gl/glfw_window`, `src/app/view_main`) —
-> renders the same 2D/3D renderers into a GLFW GL 3.3 window (WASD/mouse-look, pan/zoom, Tab
-> toggle, F12 screenshot), with an `--auto-screenshot` mode verified headless under Xvfb. Next
-> visual-mode stages: **per-surface texture transforms, thing sprites, colour/fog, 3D floors,
-> and dynamic lights**; and wiring picking/editing into the window for live authoring.
+> renders the same 2D/3D renderers into a GLFW GL 3.3 window, with an `--auto-screenshot` mode
+> verified headless under Xvfb.
+>
+> **Live 2D editing:** the pieces are now wired into a **`MapEditor` controller**
+> (`src/mapeditor/edit/editor`) — hover/click-select, drag-move vertices/things, delete, nudge,
+> undo/redo, grid snap, and pan/zoom, all driven by screen-space input and unit-tested headless.
+> `elads-view`'s 2D mode binds it to the mouse/keyboard (1–4 edit modes, LMB select/drag, RMB pan,
+> wheel zoom, F2 save) and the 2D renderer draws **things** + a **hover/selection overlay**. Next
+> visual-mode stages: **per-surface texture transforms, thing sprites, colour/fog, 3D floors, and
+> dynamic lights**; then the GLES/Pi backend and the wxWidgets shell.
 
 ## Phase 0 — On-device bring-up spike (2–4 weeks)
 

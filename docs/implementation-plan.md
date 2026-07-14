@@ -18,9 +18,10 @@ Built + tested (`cmake --preset core|desktop`; core 19 tests, desktop 22):
   (`doom_map_io.cpp`, `udmf.cpp`, **lossless** `extra` key/values); `sector_tri.cpp` (earcut);
   `map_checks.cpp` (validation); **slope planes** `planes.cpp` (slope things + `Plane_Align`,
   `sectorAt`); **save-back** `map_save.cpp` (serialize an edited model into a WAD, in place).
-- **Editing:** `src/mapeditor/edit/{selection,map_edit}.cpp` — `Selection`/`pick`, and undoable
+- **Editing:** `src/mapeditor/edit/{selection,map_edit,editor}.cpp` — `Selection`/`pick`, undoable
   operations (move/split/flip, sector & sidedef properties, things, sector authoring) through
-  `util::UndoManager`.
+  `util::UndoManager`, and a `MapEditor` controller (hover/select/drag/delete/nudge/undo + camera)
+  bound into `elads-view`'s 2D mode.
 - **Graphics:** palette, Doom picture, flats, TEXTUREx, composite, PNG, `material_set.h`,
   `wad_materials.cpp` (WAD → RGBA textures).
 - **Render abstraction:** `src/render/backend/render_backend.h` (`IRenderDevice`/`IRenderContext`,
@@ -251,9 +252,9 @@ flats/textures in the top-down view (reuse `MaterialSet` + a textured 2D shader)
 
 1. ✅ **A1 Slopes** (flagship UDMF; small, visual, testable) → 2. ✅ **B1 elads-view** (makes it
 usable) → 3. ✅ **B2 Picking** + **B3 Editing ops** + **B4 Save-back** (the model is now an
-*editor*: pick, mutate with undo, save back) → **next:**
-4. **Bind B2/B3 into the B1 window** (hover-highlight, click-select, drag-move, keyboard edits →
-   live authoring) →
+*editor*: pick, mutate with undo, save back) →
+4. ✅ **Bind B2/B3 into the B1 window** (`MapEditor` controller: hover-highlight, click-select,
+   drag-move, keyboard edits → live 2D authoring) → **next:**
 5. **A2 texture transforms** + **A5 things/sprites** (visual polish) →
 6. **C1 GLES/Pi backend** (ship the first target) →
 7. **A3 colors/fog**, **A4 3D floors**, **D1 pipeline** →
@@ -262,8 +263,10 @@ usable) → 3. ✅ **B2 Picking** + **B3 Editing ops** + **B4 Save-back** (the m
 
 Rationale: get to a *usable, shippable Pi editor* (slopes + window + edit + save + GLES) before the
 heavier fidelity and full-shell work. Each step stays headless-testable and behind the abstraction.
-Steps 1–3 landed as pure, unit-tested model/edit layers plus the standalone window; step 4 is the
-integration that turns them into interactive authoring.
+Steps 1–3 landed as pure, unit-tested model/edit layers plus the standalone window; step 4 (below)
+is now done — a `MapEditor` controller wires picking + editing into `elads-view`'s 2D mode
+(hover/select, drag-move vertices/things, delete, undo/redo, pan/zoom, grid snap, save), with a
+things + hover/selection overlay in the 2D renderer. Step 5 (visual polish) is next.
 
 ## Risks & notes
 - **Slope/plane math** and **sector re-tracing after edits** are the fiddly correctness areas — lean

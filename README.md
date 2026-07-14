@@ -108,8 +108,10 @@ ctest --preset desktop                                   # incl. headless GL ren
 ./build/desktop/src/elads-render render-map3d DOOM.wad E1M1 e1m1_3d.png 1200 900
 ```
 
-**Run the interactive viewport** (`elads-view`, needs `libglfw3-dev`; WASD + mouse-look in 3D,
-drag-pan + wheel-zoom in 2D, `Tab` toggles, `F12` screenshots):
+**Run the interactive viewport** (`elads-view`, needs `libglfw3-dev`). 2D mode is a live editor:
+`1`–`4` pick vertex/line/sector/thing modes, **LMB** select/drag, **RMB** pan, wheel zoom, `X`
+delete, `Z`/`Y` undo/redo, `G` grid snap, `F2` save. 3D mode is WASD + mouse-look; `Tab` toggles,
+`F12` screenshots:
 
 ```sh
 ./build/desktop/src/elads-view --demo-slope                      # a window on a demo map

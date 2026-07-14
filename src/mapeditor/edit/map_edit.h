@@ -45,6 +45,7 @@ int splitLinedef(map::MapModel&, util::UndoManager&, int lineIndex, double t);
 // --- things ---
 int addThing(map::MapModel&, util::UndoManager&, const map::Thing&); // returns new index
 void deleteThing(map::MapModel&, util::UndoManager&, int thingIndex);
+void setThingPosition(map::MapModel&, util::UndoManager&, int thingIndex, util::Vec2 newPos);
 
 // --- sector authoring ---
 // Create a new one-sided sector from a closed loop of >=3 points (in order). Adds the vertices,

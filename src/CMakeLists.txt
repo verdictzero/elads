@@ -26,6 +26,7 @@ add_library(elads_core STATIC
     mapeditor/model/map_checks.cpp
     mapeditor/edit/selection.cpp
     mapeditor/edit/map_edit.cpp
+    mapeditor/edit/editor.cpp
     graphics/palette.cpp
     graphics/doom_gfx.cpp
     graphics/texturex.cpp

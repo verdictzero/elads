@@ -195,6 +195,17 @@ void deleteThing(map::MapModel& m, util::UndoManager& undo, int ti) {
         [&m, ti, saved] { m.things().insert(m.things().begin() + ti, saved); });
 }
 
+void setThingPosition(map::MapModel& m, util::UndoManager& undo, int ti, util::Vec2 newPos) {
+    if (ti < 0 || ti >= static_cast<int>(m.thingCount()))
+        return;
+    const util::Vec2 oldPos = m.thing(ti).pos;
+    if (oldPos == newPos)
+        return;
+    undo.perform(
+        "move thing", [&m, ti, newPos] { m.thing(ti).pos = newPos; },
+        [&m, ti, oldPos] { m.thing(ti).pos = oldPos; });
+}
+
 int createSector(map::MapModel& m, util::UndoManager& undo, const std::vector<util::Vec2>& loop,
                  const map::Sector& sectorProto, const map::Sidedef& sideProto) {
     if (loop.size() < 3)

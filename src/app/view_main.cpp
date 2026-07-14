@@ -23,6 +23,8 @@
 #include "graphics/material_set.h"
 #include "graphics/png.h"
 #include "graphics/wad_materials.h"
+#include "mapeditor/edit/editor.h"
+#include "mapeditor/model/doom_map_io.h"
 #include "mapeditor/model/map_model.h"
 #include "mapeditor/model/map_save.h"
 #include "mapeditor/view2d/map_view_2d.h"
@@ -158,14 +160,33 @@ void updateCamera3D(view::Camera3D& c, const render::InputFrame& in, double dt) 
     if (in.fallDown) c.y -= speed;
 }
 
-void updateCamera2D(view::Camera2D& c, const render::InputFrame& in) {
-    if (in.scroll != 0.0)
-        c.pixelsPerUnit *= std::exp(in.scroll * 0.12);
-    c.pixelsPerUnit = std::max(0.02, std::min(64.0, c.pixelsPerUnit));
-    if (in.dragging && c.pixelsPerUnit > 0.0) {
-        c.centerX -= in.dragDX / c.pixelsPerUnit; // drag right => view moves left
-        c.centerY += in.dragDY / c.pixelsPerUnit; // screen y is flipped
+// Apply 2D pointer + keyboard input to the editor (select/drag/pan/zoom + edits).
+void handleEditor2D(edit::MapEditor& ed, const render::InputFrame& in) {
+    // Pointer: left = select/drag objects, right = pan, wheel = zoom.
+    if (in.leftClick) {
+        if (!ed.beginDrag(in.cursorX, in.cursorY))
+            ed.clickSelect(in.cursorX, in.cursorY);
+    } else if (in.leftDown && ed.dragging()) {
+        ed.updateDrag(in.cursorX, in.cursorY);
+    } else if (!in.leftDown && ed.dragging()) {
+        ed.endDrag();
+    } else {
+        ed.hover(in.cursorX, in.cursorY);
     }
+    if (in.rightDown && (in.cursorDX != 0.0 || in.cursorDY != 0.0))
+        ed.panPixels(in.cursorDX, in.cursorDY);
+    if (in.scroll != 0.0)
+        ed.zoomAt(std::exp(in.scroll * 0.12), in.cursorX, in.cursorY);
+
+    // Keys: modes, delete, undo/redo, grid snap.
+    if (in.mode1) ed.setMode(edit::MapEditor::Mode::Vertices);
+    if (in.mode2) ed.setMode(edit::MapEditor::Mode::Linedefs);
+    if (in.mode3) ed.setMode(edit::MapEditor::Mode::Sectors);
+    if (in.mode4) ed.setMode(edit::MapEditor::Mode::Things);
+    if (in.del) ed.deleteSelection();
+    if (in.undo) ed.undoLast();
+    if (in.redo) ed.redoLast();
+    if (in.snapToggle) ed.setGridSnap(!ed.gridSnap());
 }
 
 } // namespace
@@ -202,16 +223,22 @@ int main(int argc, char** argv) {
         return usage();
 
     try {
-        // Load content.
+        // Load content. For a real WAD we keep the archive + UDMF flag so edits can be saved back.
         map::MapModel model;
         gfx::MaterialSet materials;
+        archive::Wad wad;
+        bool haveWad = false, udmf = false;
         if (opt.demo) {
             model = demoMap(opt.demoSlope);
             materials = demoMaterials();
         } else {
-            const archive::Wad wad = archive::Wad::read(readFile(opt.wad));
+            wad = archive::Wad::read(readFile(opt.wad));
             model = map::loadMapFromWad(wad, opt.mapName);
             materials = gfx::buildMaterialSetFromWad(wad);
+            haveWad = true;
+            for (const map::MapEntry& e : map::findMaps(wad))
+                if (e.name == opt.mapName)
+                    udmf = e.udmf;
         }
 
         render::GlfwWindow win;
@@ -226,26 +253,46 @@ int main(int argc, char** argv) {
         view::MapRenderer2D r2(dev);
         view::MapRenderer3D r3(dev, &materials);
 
-        view::Camera2D cam2 = view::fitCamera(model, win.width(), win.height());
-        view::Camera3D cam3 = view::autoCamera3D(model, win.width(), win.height());
+        // The editor owns the (editable) 2D map state + camera; 3D fly keeps its own camera.
+        edit::MapEditor editor(std::move(model));
+        editor.camera() = view::fitCamera(editor.model(), win.width(), win.height());
+        view::Camera3D cam3 = view::autoCamera3D(editor.model(), win.width(), win.height());
         bool mode3d = opt.start3d;
+
+        auto saveBack = [&] {
+            if (!haveWad) {
+                std::printf("save: nothing to write (demo map has no file)\n");
+                return;
+            }
+            map::saveMapToWad(wad, opt.mapName, editor.model(), udmf);
+            writeFile(opt.wad, wad.write());
+            std::printf("saved %s (%s)\n", opt.mapName.c_str(), opt.wad.c_str());
+        };
 
         auto renderFrame = [&] {
             win.bindDefaultFramebuffer();
-            cam2.width = win.width();
-            cam2.height = win.height();
+            editor.camera().width = win.width();
+            editor.camera().height = win.height();
             cam3.width = win.width();
             cam3.height = win.height();
             ctx.beginFrame(win.viewport());
-            if (mode3d)
-                r3.render(ctx, model, cam3);
-            else
-                r2.render(ctx, model, cam2);
+            if (mode3d) {
+                r3.render(ctx, editor.model(), cam3);
+            } else {
+                const view::MapOverlay ov{editor.highlight(), editor.selection()};
+                r2.render(ctx, editor.model(), editor.camera(), ov);
+            }
             ctx.endFrame();
         };
 
         // --- Headless auto-screenshot: render N frames, save the last, exit. ---
         if (!opt.autoShot.empty()) {
+            // Show the overlay in 2D auto-shots by selecting the first vertex (visual check).
+            if (!mode3d && editor.model().vertexCount() > 0) {
+                const util::Vec2 sp = view::worldToScreen(editor.camera(), editor.model().vertex(0).pos);
+                editor.setMode(edit::MapEditor::Mode::Vertices);
+                editor.clickSelect(sp.x, sp.y);
+            }
             const int total = std::max(1, opt.frames);
             for (int f = 0; f < total; ++f) {
                 win.poll(); // pump events so the platform is happy
@@ -265,6 +312,9 @@ int main(int argc, char** argv) {
         // --- Interactive loop. ---
         if (mode3d)
             win.setCursorCaptured(true);
+        std::puts("elads-view: Tab=2D/3D  (2D) 1-4=vertex/line/sector/thing modes, LMB=select/drag,"
+                  " RMB=pan, wheel=zoom, X=delete, Z/Y=undo/redo, G=grid snap, F2=save;"
+                  " (3D) WASD+mouse, Q/E=up/down; R=reset, F12=shot, Esc=quit");
         using clock = std::chrono::steady_clock;
         clock::time_point last = clock::now();
         while (!win.shouldClose()) {
@@ -278,17 +328,19 @@ int main(int argc, char** argv) {
             if (in.quit)
                 win.requestClose();
             if (in.reset) {
-                cam2 = view::fitCamera(model, win.width(), win.height());
-                cam3 = view::autoCamera3D(model, win.width(), win.height());
+                editor.camera() = view::fitCamera(editor.model(), win.width(), win.height());
+                cam3 = view::autoCamera3D(editor.model(), win.width(), win.height());
             }
             if (in.toggleView) {
                 mode3d = !mode3d;
                 win.setCursorCaptured(mode3d);
             }
+            if (in.save)
+                saveBack();
             if (mode3d)
                 updateCamera3D(cam3, in, dt);
             else
-                updateCamera2D(cam2, in);
+                handleEditor2D(editor, in);
 
             renderFrame();
             if (in.screenshot)

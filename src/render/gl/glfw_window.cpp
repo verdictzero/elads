@@ -80,6 +80,14 @@ InputFrame GlfwWindow::poll() {
     glfwGetFramebufferSize(win_, &w_, &h_);
 
     auto held = [&](int key) { return glfwGetKey(win_, key) == GLFW_PRESS; };
+    // Edge: key is down now but was up last poll.
+    auto edge = [&](int key) {
+        const bool now = held(key);
+        const bool was = prevKey_[key];
+        prevKey_[key] = now;
+        return now && !was;
+    };
+
     in.forward = held(GLFW_KEY_W);
     in.back = held(GLFW_KEY_S);
     in.left = held(GLFW_KEY_A);
@@ -88,19 +96,24 @@ InputFrame GlfwWindow::poll() {
     in.fallDown = held(GLFW_KEY_E);
     in.speed = held(GLFW_KEY_LEFT_SHIFT) || held(GLFW_KEY_RIGHT_SHIFT);
 
-    // Edge-triggered toggles/actions.
-    const bool tab = held(GLFW_KEY_TAB), f12 = held(GLFW_KEY_F12), r = held(GLFW_KEY_R),
-               esc = held(GLFW_KEY_ESCAPE);
-    in.toggleView = tab && !prevTab_;
-    in.screenshot = f12 && !prevF12_;
-    in.reset = r && !prevR_;
-    in.quit = esc && !prevEsc_;
-    prevTab_ = tab;
-    prevF12_ = f12;
-    prevR_ = r;
-    prevEsc_ = esc;
+    in.toggleView = edge(GLFW_KEY_TAB);
+    in.screenshot = edge(GLFW_KEY_F12);
+    in.reset = edge(GLFW_KEY_R);
+    in.quit = edge(GLFW_KEY_ESCAPE);
+    in.mode1 = edge(GLFW_KEY_1);
+    in.mode2 = edge(GLFW_KEY_2);
+    in.mode3 = edge(GLFW_KEY_3);
+    in.mode4 = edge(GLFW_KEY_4);
+    // Evaluate both separately (not short-circuited) so each key's previous state is updated.
+    const bool delKey = edge(GLFW_KEY_DELETE);
+    const bool xKey = edge(GLFW_KEY_X);
+    in.del = delKey || xKey;
+    in.undo = edge(GLFW_KEY_Z);
+    in.redo = edge(GLFW_KEY_Y);
+    in.save = edge(GLFW_KEY_F2);
+    in.snapToggle = edge(GLFW_KEY_G);
 
-    // Cursor delta (used for 3D look when captured, 2D pan when dragging).
+    // Cursor position + delta since last poll.
     double cx = 0.0, cy = 0.0;
     glfwGetCursorPos(win_, &cx, &cy);
     double dx = 0.0, dy = 0.0;
@@ -115,12 +128,18 @@ InputFrame GlfwWindow::poll() {
     if (cursorCaptured_) {
         in.lookDX = dx;
         in.lookDY = dy;
+    } else {
+        in.cursorX = cx;
+        in.cursorY = cy;
+        in.cursorDX = dx;
+        in.cursorDY = dy;
     }
-    in.dragging = glfwGetMouseButton(win_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-    if (in.dragging && !cursorCaptured_) {
-        in.dragDX = dx;
-        in.dragDY = dy;
-    }
+
+    const bool left = glfwGetMouseButton(win_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+    in.leftDown = left;
+    in.leftClick = left && !prevLeft_;
+    prevLeft_ = left;
+    in.rightDown = glfwGetMouseButton(win_, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
 
     in.scroll = scrollAccum_;
     scrollAccum_ = 0.0;

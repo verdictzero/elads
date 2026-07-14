@@ -25,10 +25,11 @@ const char* kVert = R"(#version 330 core
 layout(location = 0) in vec2 aPos;
 layout(location = 1) in vec4 aColor;
 uniform mat4 uMvp;
+uniform vec4 uPointSize; // .x = gl_PointSize (only affects GL_POINTS draws)
 out vec4 vColor;
 void main() {
     gl_Position = uMvp * vec4(aPos, 0.0, 1.0);
-    gl_PointSize = 5.0;
+    gl_PointSize = uPointSize.x;
     vColor = aColor;
 }
 )";
@@ -110,7 +111,22 @@ MapRenderer2D::~MapRenderer2D() {
         dev_.destroyProgram(program_);
 }
 
+namespace {
+// Editor overlay colours.
+constexpr float kHl[3] = {1.00f, 0.85f, 0.25f};  // hover (yellow)
+constexpr float kSel[3] = {1.00f, 0.42f, 0.16f}; // selection (orange)
+
+bool matches(const edit::Selection& s, edit::ObjType t, int i) {
+    return s.type == t && s.index == i;
+}
+} // namespace
+
 void MapRenderer2D::render(render::IRenderContext& ctx, const map::MapModel& m, const Camera2D& cam) {
+    render(ctx, m, cam, MapOverlay{});
+}
+
+void MapRenderer2D::render(render::IRenderContext& ctx, const map::MapModel& m, const Camera2D& cam,
+                           const MapOverlay& ov) {
     float mvp[16];
     cameraOrtho(cam, mvp);
 
@@ -118,14 +134,26 @@ void MapRenderer2D::render(render::IRenderContext& ctx, const map::MapModel& m, 
     ctx.clear(render::Color{0.09f, 0.09f, 0.11f, 1.f});
     ctx.bindProgram(program_);
     ctx.setUniformMat4("uMvp", mvp);
+    ctx.setUniformVec4("uPointSize", 5.f, 0.f, 0.f, 0.f);
 
-    auto drawBatch = [&](const std::vector<MV>& verts, render::Topology topo) {
+    auto drawBatch = [&](const std::vector<MV>& verts, render::Topology topo, float pointSize = 5.f) {
         if (verts.empty())
             return;
+        if (topo == render::Topology::Points)
+            ctx.setUniformVec4("uPointSize", pointSize, 0.f, 0.f, 0.f);
         const render::BufferHandle buf = upload(dev_, verts);
         ctx.bindVertexBuffer(buf, kLayout);
         ctx.draw(topo, 0, static_cast<uint32_t>(verts.size()));
         dev_.destroyBuffer(buf); // immediate-mode backend: draw already issued
+    };
+
+    // How an object should be tinted given the overlay: selection wins over hover over base.
+    auto emphasis = [&](edit::ObjType t, int i, const float* base) -> const float* {
+        if (matches(ov.selection, t, i))
+            return kSel;
+        if (matches(ov.highlight, t, i))
+            return kHl;
+        return base;
     };
 
     // 1) Grid — lines every 64 units across the bounds.
@@ -148,23 +176,30 @@ void MapRenderer2D::render(render::IRenderContext& ctx, const map::MapModel& m, 
         }
     }
 
-    // 2) Sector fills — earcut triangles, tinted by sector light.
+    // 2) Sector fills — earcut triangles, tinted by sector light (highlighted/selected recolour).
     {
         std::vector<MV> fills;
         for (int s = 0; s < static_cast<int>(m.sectorCount()); ++s) {
             const map::Triangulation t = map::triangulateSector(m, s);
             const float light = static_cast<float>(m.sector(s).lightLevel) / 255.f;
             const float g = 0.10f + light * 0.22f;
+            const float base[3] = {g * 0.75f, g * 0.85f, g};
+            const float* c = emphasis(edit::ObjType::Sector, s, base);
+            // Overlaid sectors get a dimmed version of the overlay colour so lines stay readable.
+            const bool over = c != base;
+            const float r = over ? c[0] * 0.45f : c[0];
+            const float gg = over ? c[1] * 0.45f : c[1];
+            const float bb = over ? c[2] * 0.45f : c[2];
             for (size_t i = 0; i + 2 < t.indices.size() + 1 && i + 3 <= t.indices.size(); i += 3)
                 for (int k = 0; k < 3; ++k) {
                     const util::Vec2 p = t.points[t.indices[i + k]];
-                    push(fills, p.x, p.y, g * 0.75f, g * 0.85f, g);
+                    push(fills, p.x, p.y, r, gg, bb);
                 }
         }
         drawBatch(fills, render::Topology::Triangles);
     }
 
-    // 3) Linedefs — white for one-sided, muted blue-grey for two-sided.
+    // 3) Linedefs — white for one-sided, muted blue-grey for two-sided (overlay recolours).
     {
         std::vector<MV> lines;
         for (int i = 0; i < static_cast<int>(m.linedefCount()); ++i) {
@@ -173,28 +208,66 @@ void MapRenderer2D::render(render::IRenderContext& ctx, const map::MapModel& m, 
                 continue;
             const util::Vec2 a = m.vertex(l.v1).pos;
             const util::Vec2 b = m.vertex(l.v2).pos;
-            float r, g, bl;
-            if (l.twoSided()) {
-                r = 0.42f;
-                g = 0.47f;
-                bl = 0.55f;
-            } else {
-                r = g = bl = 0.92f;
-            }
-            push(lines, a.x, a.y, r, g, bl);
-            push(lines, b.x, b.y, r, g, bl);
+            const float twoSided[3] = {0.42f, 0.47f, 0.55f};
+            const float oneSided[3] = {0.92f, 0.92f, 0.92f};
+            const float* base = l.twoSided() ? twoSided : oneSided;
+            const float* c = emphasis(edit::ObjType::Linedef, i, base);
+            push(lines, a.x, a.y, c[0], c[1], c[2]);
+            push(lines, b.x, b.y, c[0], c[1], c[2]);
         }
         drawBatch(lines, render::Topology::Lines);
     }
 
-    // 4) Vertices — small cyan points.
+    // 4) Things — small green markers (overlay recolours + enlarges).
+    {
+        std::vector<MV> pts;
+        for (int i = 0; i < static_cast<int>(m.thingCount()); ++i) {
+            const util::Vec2 p = m.thing(i).pos;
+            const float base[3] = {0.35f, 0.85f, 0.45f};
+            const float* c = emphasis(edit::ObjType::Thing, i, base);
+            push(pts, p.x, p.y, c[0], c[1], c[2]);
+        }
+        drawBatch(pts, render::Topology::Points, 7.f);
+        // Re-draw the emphasized thing larger, on top.
+        if (ov.selection.type == edit::ObjType::Thing || ov.highlight.type == edit::ObjType::Thing) {
+            std::vector<MV> hi;
+            auto add = [&](const edit::Selection& s, const float* c) {
+                if (s.type == edit::ObjType::Thing && s.index >= 0 &&
+                    s.index < static_cast<int>(m.thingCount())) {
+                    const util::Vec2 p = m.thing(s.index).pos;
+                    push(hi, p.x, p.y, c[0], c[1], c[2]);
+                }
+            };
+            add(ov.highlight, kHl);
+            add(ov.selection, kSel);
+            drawBatch(hi, render::Topology::Points, 12.f);
+        }
+    }
+
+    // 5) Vertices — small cyan points (overlay recolours + enlarges).
     {
         std::vector<MV> pts;
         for (int i = 0; i < static_cast<int>(m.vertexCount()); ++i) {
             const util::Vec2 p = m.vertex(i).pos;
-            push(pts, p.x, p.y, 0.20f, 0.90f, 0.95f);
+            const float base[3] = {0.20f, 0.90f, 0.95f};
+            const float* c = emphasis(edit::ObjType::Vertex, i, base);
+            push(pts, p.x, p.y, c[0], c[1], c[2]);
         }
-        drawBatch(pts, render::Topology::Points);
+        drawBatch(pts, render::Topology::Points, 5.f);
+        // Re-draw the emphasized vertex larger, on top.
+        if (ov.selection.type == edit::ObjType::Vertex || ov.highlight.type == edit::ObjType::Vertex) {
+            std::vector<MV> hi;
+            auto add = [&](const edit::Selection& s, const float* c) {
+                if (s.type == edit::ObjType::Vertex && s.index >= 0 &&
+                    s.index < static_cast<int>(m.vertexCount())) {
+                    const util::Vec2 p = m.vertex(s.index).pos;
+                    push(hi, p.x, p.y, c[0], c[1], c[2]);
+                }
+            };
+            add(ov.highlight, kHl);
+            add(ov.selection, kSel);
+            drawBatch(hi, render::Topology::Points, 10.f);
+        }
     }
 }
 

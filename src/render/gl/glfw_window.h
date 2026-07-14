@@ -9,6 +9,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 
 #include "graphics/image.h"
 #include "render/backend/render_backend.h"
@@ -18,20 +19,35 @@ struct GLFWwindow;
 namespace elads::render {
 
 // One frame's worth of decoded input. Movement fields are "is held now"; toggle/action fields are
-// edge-triggered (true only on the frame the key goes down). Mouse deltas are since the last poll.
+// edge-triggered (true only on the frame the key/button goes down). Mouse deltas are since the
+// last poll. Pointer fields are meaningful only when the cursor is not captured (2D mode).
 struct InputFrame {
+    // 3D fly (held).
     bool forward = false, back = false, left = false, right = false; // WASD
     bool riseUp = false, fallDown = false;                          // Q / E (3D height)
     bool speed = false;                                             // Shift (move faster)
-    bool toggleView = false;                                        // Tab (edge)
-    bool screenshot = false;                                        // F12 (edge)
-    bool reset = false;                                             // R (edge)
-    bool quit = false;                                             // Esc (edge)
 
-    double lookDX = 0.0, lookDY = 0.0; // mouse-look delta (3D, cursor captured)
-    double scroll = 0.0;               // wheel delta (2D zoom)
-    bool dragging = false;             // left mouse button held (2D pan)
-    double dragDX = 0.0, dragDY = 0.0; // cursor delta while dragging (screen px)
+    // Edge-triggered actions.
+    bool toggleView = false; // Tab
+    bool screenshot = false; // F12
+    bool reset = false;      // R (reset camera)
+    bool quit = false;       // Esc
+    bool mode1 = false, mode2 = false, mode3 = false, mode4 = false; // 1..4 edit modes
+    bool del = false;        // Delete / X
+    bool undo = false;       // Z
+    bool redo = false;       // Y
+    bool save = false;       // F2
+    bool snapToggle = false; // G
+
+    // 3D look (cursor captured).
+    double lookDX = 0.0, lookDY = 0.0;
+    double scroll = 0.0; // wheel delta (zoom)
+
+    // 2D pointer (cursor not captured).
+    double cursorX = 0.0, cursorY = 0.0;   // absolute position (px, origin top-left)
+    double cursorDX = 0.0, cursorDY = 0.0; // delta since last poll
+    bool leftDown = false, rightDown = false;
+    bool leftClick = false; // left button went down this frame (edge)
 };
 
 class GlfwWindow {
@@ -78,8 +94,8 @@ private:
     bool haveCursor_ = false;
     bool cursorCaptured_ = false;
     double scrollAccum_ = 0.0; // accumulated by the GLFW scroll callback, drained each poll
-    // Previous edge-key states for edge triggering.
-    bool prevTab_ = false, prevF12_ = false, prevR_ = false, prevEsc_ = false;
+    bool prevLeft_ = false;    // previous left-mouse state (for click edge)
+    std::unordered_map<int, bool> prevKey_; // previous key states, keyed by GLFW key (edge trigger)
 };
 
 } // namespace elads::render

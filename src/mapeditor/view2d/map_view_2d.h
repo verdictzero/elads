@@ -6,10 +6,17 @@
 // backends. See docs/design/04-map-editor.md §2.
 #pragma once
 
+#include "mapeditor/edit/selection.h"
 #include "mapeditor/model/map_model.h"
 #include "render/backend/render_backend.h"
 
 namespace elads::view {
+
+// Optional editor overlay: the hovered + selected objects, emphasized on top of the base map.
+struct MapOverlay {
+    edit::Selection highlight; // hovered object (drawn in the hover colour)
+    edit::Selection selection; // selected object (drawn in the selection colour)
+};
 
 // A top-down orthographic camera over map space (Doom units; +Y is north/up).
 struct Camera2D {
@@ -39,6 +46,8 @@ public:
     ~MapRenderer2D();
 
     void render(render::IRenderContext&, const map::MapModel&, const Camera2D&);
+    // Same, plus an editor overlay emphasizing the hovered/selected object.
+    void render(render::IRenderContext&, const map::MapModel&, const Camera2D&, const MapOverlay&);
 
 private:
     render::IRenderDevice& dev_;
