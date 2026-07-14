@@ -9,6 +9,7 @@
 
 #include "mapeditor/model/planes.h"
 #include "mapeditor/model/sector_tri.h"
+#include "mapeditor/model/tex_align.h"
 
 namespace elads::view {
 namespace {
@@ -225,23 +226,29 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
     }
 
     // Wall quad with independent per-endpoint bottom/top heights (so it follows sloped floors
-    // and ceilings). UV: U = distance-along / tex.w, V from each endpoint's own height span.
+    // and ceilings) and proper Doom texture alignment: U from distance-along + sidedef X offset,
+    // V from the peg-derived texture-top Z + sidedef Y offset (see tex_align.h).
     auto wall = [&](util::Vec2 a, util::Vec2 b, double zBotA, double zTopA, double zBotB,
-                    double zTopB, const Tex& tex, RGB tint) {
+                    double zTopB, const Tex& tex, RGB tint, map::WallPart part,
+                    const map::Sidedef& side, bool pegTop, bool pegBot, double frontCeilA,
+                    double frontCeilB) {
         if (zTopA <= zBotA && zTopB <= zBotB)
             return; // degenerate at both ends
         const double len = (b - a).length();
-        const double uMax = len / tex.w;
-        const double vA = (zTopA - zBotA) / tex.h;
-        const double vB = (zTopB - zBotB) / tex.h;
+        const double uA = map::texU(0.0, tex.w, side.offsetX);
+        const double uB = map::texU(len, tex.w, side.offsetX);
+        const double topZA = map::pegTopZ(part, zBotA, zTopA, frontCeilA, tex.h, pegTop, pegBot);
+        const double topZB = map::pegTopZ(part, zBotB, zTopB, frontCeilB, tex.h, pegTop, pegBot);
+        const double oy = side.offsetY;
+        auto V = [&](double z, double topZ) { return map::texV(z, topZ, tex.h, oy); };
         auto& batch = batchFor(tex.handle);
         // two triangles: (a,bot)-(b,bot)-(b,top) and (a,bot)-(b,top)-(a,top)
-        batch.push_back(vtx(a.x, zBotA, a.y, 0, vA, tint));
-        batch.push_back(vtx(b.x, zBotB, b.y, uMax, vB, tint));
-        batch.push_back(vtx(b.x, zTopB, b.y, uMax, 0, tint));
-        batch.push_back(vtx(a.x, zBotA, a.y, 0, vA, tint));
-        batch.push_back(vtx(b.x, zTopB, b.y, uMax, 0, tint));
-        batch.push_back(vtx(a.x, zTopA, a.y, 0, 0, tint));
+        batch.push_back(vtx(a.x, zBotA, a.y, uA, V(zBotA, topZA), tint));
+        batch.push_back(vtx(b.x, zBotB, b.y, uB, V(zBotB, topZB), tint));
+        batch.push_back(vtx(b.x, zTopB, b.y, uB, V(zTopB, topZB), tint));
+        batch.push_back(vtx(a.x, zBotA, a.y, uA, V(zBotA, topZA), tint));
+        batch.push_back(vtx(b.x, zTopB, b.y, uB, V(zTopB, topZB), tint));
+        batch.push_back(vtx(a.x, zTopA, a.y, uA, V(zTopA, topZA), tint));
     };
 
     for (int i = 0; i < static_cast<int>(m.linedefCount()); ++i) {
@@ -257,11 +264,15 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
         const map::SectorPlanes& fp = planes[static_cast<size_t>(fs)];
         const map::Sidedef& side = m.sidedef(l.front);
         const float sh = shade(f.lightLevel);
+        const bool pegTop = (l.flags & map::kFlagDontPegTop) != 0;
+        const bool pegBot = (l.flags & map::kFlagDontPegBottom) != 0;
+        const double fCeilA = fp.ceil.heightAt(a), fCeilB = fp.ceil.heightAt(b);
         const int bsIdx = m.backSector(l);
         if (bsIdx == map::kNoRef) {
             const Tex tex = resolve(side.middle);
-            wall(a, b, fp.floor.heightAt(a), fp.ceil.heightAt(a), fp.floor.heightAt(b),
-                 fp.ceil.heightAt(b), tex, tintFor(tex.real, sh, 'W'));
+            wall(a, b, fp.floor.heightAt(a), fCeilA, fp.floor.heightAt(b), fCeilB, tex,
+                 tintFor(tex.real, sh, 'W'), map::WallPart::OneSidedMiddle, side, pegTop, pegBot,
+                 fCeilA, fCeilB);
         } else {
             const map::SectorPlanes& bp = planes[static_cast<size_t>(bsIdx)];
             // Lower step: between the two floor planes (bottom = lower plane, top = higher).
@@ -270,15 +281,17 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
             if (fFA != bFA || fFB != bFB) {
                 const Tex tex = resolve(side.lower);
                 wall(a, b, std::min(fFA, bFA), std::max(fFA, bFA), std::min(fFB, bFB),
-                     std::max(fFB, bFB), tex, tintFor(tex.real, sh, 'S'));
+                     std::max(fFB, bFB), tex, tintFor(tex.real, sh, 'S'), map::WallPart::Lower, side,
+                     pegTop, pegBot, fCeilA, fCeilB);
             }
             // Upper: between the two ceiling planes.
-            const double fCA = fp.ceil.heightAt(a), bCA = bp.ceil.heightAt(a);
-            const double fCB = fp.ceil.heightAt(b), bCB = bp.ceil.heightAt(b);
+            const double fCA = fCeilA, bCA = bp.ceil.heightAt(a);
+            const double fCB = fCeilB, bCB = bp.ceil.heightAt(b);
             if (fCA != bCA || fCB != bCB) {
                 const Tex tex = resolve(side.upper);
                 wall(a, b, std::min(fCA, bCA), std::max(fCA, bCA), std::min(fCB, bCB),
-                     std::max(fCB, bCB), tex, tintFor(tex.real, sh, 'S'));
+                     std::max(fCB, bCB), tex, tintFor(tex.real, sh, 'S'), map::WallPart::Upper, side,
+                     pegTop, pegBot, fCeilA, fCeilB);
             }
         }
     }

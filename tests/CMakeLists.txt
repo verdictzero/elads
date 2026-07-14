@@ -11,6 +11,7 @@ set(ELADS_TESTS
     test_texturex
     test_sector_tri
     test_slopes
+    test_tex_align
     test_pick
     test_map_edit
     test_map_save
