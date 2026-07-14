@@ -10,6 +10,9 @@ set(ELADS_TESTS
     test_doom_gfx
     test_texturex
     test_sector_tri
+    test_flat
+    test_composite
+    test_entry_type
 )
 
 foreach(t ${ELADS_TESTS})

@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <string>
 
+#include "archive/entry_type.h"
 #include "archive/wad.h"
 #include "mapeditor/model/doom_map_io.h"
 #include "mapeditor/model/udmf.h"
@@ -96,6 +97,7 @@ int usage() {
     std::puts("elads — Doom dev environment (CLI core)\n");
     std::puts("usage:");
     std::puts("  elads wad-info <file.wad>");
+    std::puts("  elads lump-types <file.wad>");
     std::puts("  elads map-info <file.wad> <MAPNAME>");
     std::puts("  elads demo-wad <out.wad>");
     return 2;
@@ -127,6 +129,17 @@ void printMapStats(const map::MapModel& m, const char* fmt) {
     if (b.valid())
         std::printf("  bounds:   [%g, %g] .. [%g, %g]  (%g x %g)\n", b.minX, b.minY, b.maxX,
                     b.maxY, b.width(), b.height());
+}
+
+int lumpTypes(const std::string& path) {
+    const archive::Wad wad = archive::Wad::read(readFile(path));
+    for (size_t i = 0; i < wad.lumpCount(); ++i) {
+        const auto& l = wad.lumps()[i];
+        const auto type = archive::detectEntryType(l.name, l.data);
+        std::printf("  [%4zu] %-8s %8zu bytes  %s\n", i, l.name.c_str(), l.data.size(),
+                    archive::entryTypeName(type));
+    }
+    return 0;
 }
 
 int mapInfo(const std::string& path, const std::string& mapName) {
@@ -162,6 +175,8 @@ int main(int argc, char** argv) {
     try {
         if (argc >= 3 && std::string(argv[1]) == "wad-info")
             return wadInfo(argv[2]);
+        if (argc >= 3 && std::string(argv[1]) == "lump-types")
+            return lumpTypes(argv[2]);
         if (argc >= 4 && std::string(argv[1]) == "map-info")
             return mapInfo(argv[2], argv[3]);
         if (argc >= 3 && std::string(argv[1]) == "demo-wad")

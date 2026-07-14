@@ -10,11 +10,12 @@ into a **single native GPLv3 application** that runs **hardware-accelerated on a
 
 > **Status: pre-alpha.** This repository contains the comprehensive internal **design
 > documentation**, the **project scaffolding**, and a working **GUI/GL-free core** with a
-> passing test suite (8 tests): WAD read/write, the map data model, **classic Doom binary**
-> and **UDMF** map (de)serialization (lossless), palette + **Doom picture** decode/encode,
-> **TEXTUREx/PNAMES**, **earcut sector triangulation**, the render-abstraction interface, and
-> an **`elads` CLI**. The GUI/OpenGL layers are not built yet. See [`docs/`](docs/) for the
-> full design and [`docs/roadmap.md`](docs/roadmap.md).
+> passing test suite (11 tests): WAD read/write + **entry-type detection**; the map data
+> model with **classic Doom binary** and **UDMF** map (de)serialization (lossless) and
+> **earcut sector triangulation**; palette, **Doom picture** and **flat** decode/encode,
+> **TEXTUREx/PNAMES** and **composite-texture assembly**; the render-abstraction interface;
+> and an **`elads` CLI**. The GUI/OpenGL layers are not built yet. See [`docs/`](docs/) for
+> the full design and [`docs/roadmap.md`](docs/roadmap.md).
 
 ---
 
@@ -94,6 +95,7 @@ Try the CLI (writes a sample WAD with a binary and a UDMF map, then inspects it)
 ```sh
 ./build/core/src/elads demo-wad /tmp/demo.wad
 ./build/core/src/elads wad-info /tmp/demo.wad
+./build/core/src/elads lump-types /tmp/demo.wad       # detected entry types
 ./build/core/src/elads map-info /tmp/demo.wad MAP01   # binary
 ./build/core/src/elads map-info /tmp/demo.wad MAP02   # UDMF
 ```

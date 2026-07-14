@@ -6,14 +6,16 @@ The **GUI/GL-free core** now has its first real, tested code (build with
 `cmake --preset core && ctest --preset core`):
 
 - `util/` — `geometry.h` (Vec2/BBox/segment distance), `byte_io.h` (LE reader/writer), `undo.h`
-- `archive/` — `wad.{h,cpp}` (lightweight WAD read/write, byte-for-byte round-trip)
+- `archive/` — `wad.{h,cpp}` (lightweight WAD read/write, byte-for-byte round-trip),
+  `entry_type.{h,cpp}` (ordered lump-type detection pipeline)
 - `mapeditor/model/` — `map_objects.h`, `map_model.{h,cpp}` (geometry model + topology/hit-test),
   `doom_map_io.{h,cpp}` (classic Doom binary maps + map discovery), `udmf.{h,cpp}` (UDMF text, lossless),
   `sector_tri.{h,cpp}` (boundary tracing + earcut triangulation)
 - `graphics/` — `image.h` (RGBA8), `palette.{h,cpp}` (PLAYPAL + nearest-color),
-  `doom_gfx.{h,cpp}` (Doom picture decode/encode), `texturex.{h,cpp}` (PNAMES + TEXTUREx)
+  `doom_gfx.{h,cpp}` (Doom picture decode/encode), `flat.{h,cpp}` (flats), `texturex.{h,cpp}`
+  (PNAMES + TEXTUREx), `composite.{h,cpp}` (assemble a texture from patches)
 - `render/backend/` — `render_backend.h` (the `IRenderDevice`/`IRenderContext` interface)
-- `app/` — `cli_main.cpp` (the `elads` CLI: `wad-info`, `map-info`, `demo-wad`)
+- `app/` — `cli_main.cpp` (the `elads` CLI: `wad-info`, `lump-types`, `map-info`, `demo-wad`)
 
 Vendored: `third_party/earcut/earcut.hpp` (ISC) for sector triangulation.
 

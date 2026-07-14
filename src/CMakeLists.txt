@@ -5,6 +5,7 @@
 
 add_library(elads_core STATIC
     archive/wad.cpp
+    archive/entry_type.cpp
     mapeditor/model/map_model.cpp
     mapeditor/model/doom_map_io.cpp
     mapeditor/model/udmf.cpp
@@ -12,6 +13,8 @@ add_library(elads_core STATIC
     graphics/palette.cpp
     graphics/doom_gfx.cpp
     graphics/texturex.cpp
+    graphics/flat.cpp
+    graphics/composite.cpp
 )
 
 target_include_directories(elads_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

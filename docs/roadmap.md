@@ -5,14 +5,15 @@ Living plan. Dates are relative effort estimates, not commitments. Priorities:
 SLADE aggressively, and phase 3D fidelity*.
 
 > **Progress:** the design docs + scaffolding are complete, and a growing **GUI/GL-free core**
-> compiles and passes tests (`cmake --preset core && ctest --preset core`, 8 tests):
-> lightweight WAD I/O (`src/archive`); the map data model + **classic Doom binary** and **UDMF**
-> map (de)serialization with lossless round-trip + **earcut sector triangulation**
-> (`src/mapeditor/model`); palette, **Doom picture** decode/encode, and **TEXTUREx/PNAMES**
+> compiles and passes tests (`cmake --preset core && ctest --preset core`, 11 tests):
+> lightweight WAD I/O + **entry-type detection** (`src/archive`); the map data model +
+> **classic Doom binary** and **UDMF** map (de)serialization with lossless round-trip +
+> **earcut sector triangulation** (`src/mapeditor/model`); palette, **Doom picture** and
+> **flat** decode/encode, **TEXTUREx/PNAMES**, and **composite-texture assembly**
 > (`src/graphics`); foundational utils (`src/util`); the render-abstraction **interface**
-> (`src/render/backend`); and an **`elads` CLI** (`wad-info`/`map-info`/`demo-wad`). Next is
-> Phase 0 (on-device graphics bring-up), which needs real Pi 5 hardware; further core work
-> (entry-type detection, PK3/zip, map validation, Hexen format) can continue off-device.
+> (`src/render/backend`); and an **`elads` CLI** (`wad-info`/`lump-types`/`map-info`/`demo-wad`).
+> Next is Phase 0 (on-device graphics bring-up), which needs real Pi 5 hardware; further core
+> work (PK3/zip reading, map validation, Hexen-format maps) can continue off-device.
 
 ## Phase 0 — On-device bring-up spike (2–4 weeks)
 
