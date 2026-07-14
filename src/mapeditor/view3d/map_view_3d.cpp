@@ -52,6 +52,18 @@ float shade(int light) {
 struct RGB {
     float r, g, b;
 };
+// Placeholder thing colours by editor number, until the ZScript/DECORATE sprite catalog (full
+// A5) lands: player starts green, keys by colour, everything else an amber marker.
+RGB thingTint(int type) {
+    switch (type) {
+        case 1: case 2: case 3: case 4: case 11: return {0.30f, 0.90f, 0.35f}; // player starts
+        case 5: case 40: return {0.32f, 0.55f, 1.00f};                          // blue key(s)
+        case 6: case 39: return {0.95f, 0.85f, 0.22f};                          // yellow key(s)
+        case 13: case 38: return {0.95f, 0.28f, 0.28f};                         // red key(s)
+        default: return {0.85f, 0.65f, 0.32f};                                  // generic marker
+    }
+}
+
 // Tint: neutral (texture shows true color) when real; otherwise a surface-typed shaded color.
 RGB tintFor(bool real, float sh, char kind) {
     if (real)
@@ -141,6 +153,22 @@ bool rayHitHeight(const Ray3D& r, double height, util::Vec2& outMap) {
         return false; // behind the camera
     outMap = {r.ox + r.dx * t, r.oz + r.dz * t};
     return true;
+}
+
+void billboardCorners(double cx, double baseY, double cz, float yaw, double halfWidth,
+                      double height, double out[4][3]) {
+    // Horizontal "right" vector for the camera yaw; the quad spans ±halfWidth along it and is
+    // upright along world +Y (Doom-style sprites stay vertical).
+    const double rx = std::cos(yaw) * halfWidth;
+    const double rz = -std::sin(yaw) * halfWidth;
+    const double topY = baseY + height;
+    const double corners[4][3] = {{cx - rx, baseY, cz - rz},  // bottom-left
+                                  {cx + rx, baseY, cz + rz},   // bottom-right
+                                  {cx - rx, topY, cz - rz},    // top-left
+                                  {cx + rx, topY, cz + rz}};   // top-right
+    for (int i = 0; i < 4; ++i)
+        for (int k = 0; k < 3; ++k)
+            out[i][k] = corners[i][k];
 }
 
 MapRenderer3D::MapRenderer3D(render::IRenderDevice& device, const gfx::MaterialSet* materials)
@@ -293,6 +321,31 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
                      std::max(fCB, bCB), tex, tintFor(tex.real, sh, 'S'), map::WallPart::Upper, side,
                      pegTop, pegBot, fCeilA, fCeilB);
             }
+        }
+    }
+
+    // Things as upright camera-facing billboards (flat-coloured placeholders; a real sprite
+    // catalog is the fuller A5). Slope-helper things (9500/9501) are geometry sources, not shown.
+    {
+        auto& batch = batchFor(white_);
+        for (int i = 0; i < static_cast<int>(m.thingCount()); ++i) {
+            const map::Thing& th = m.thing(i);
+            if (th.type == 9500 || th.type == 9501)
+                continue;
+            double baseY = th.z;
+            const int s = map::sectorAt(m, th.pos.x, th.pos.y);
+            if (s != map::kNoRef)
+                baseY += planes[static_cast<size_t>(s)].floor.heightAt(th.pos);
+            const RGB t = thingTint(th.type);
+            double c[4][3];
+            billboardCorners(th.pos.x, baseY, th.pos.y, cam.yaw, 16.0, 56.0, c);
+            // two triangles: bl-br-tr and bl-tr-tl
+            batch.push_back(vtx(c[0][0], c[0][1], c[0][2], 0, 1, t));
+            batch.push_back(vtx(c[1][0], c[1][1], c[1][2], 1, 1, t));
+            batch.push_back(vtx(c[3][0], c[3][1], c[3][2], 1, 0, t));
+            batch.push_back(vtx(c[0][0], c[0][1], c[0][2], 0, 1, t));
+            batch.push_back(vtx(c[3][0], c[3][1], c[3][2], 1, 0, t));
+            batch.push_back(vtx(c[2][0], c[2][1], c[2][2], 0, 0, t));
         }
     }
 

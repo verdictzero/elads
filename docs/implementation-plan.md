@@ -118,7 +118,13 @@ them inside the target sector with depth + blending. **Test:** synthetic map wit
 render asserts an inner slab. **Deps:** A1 (planes) helps but not required. **Acceptance:** stacked
 floors visible in `render-map3d`.
 
-### A5. Things: sprites + UDMF fields  — **v2, M**
+### A5. Things: sprites + UDMF fields  — **v2, M** — ✅ placeholders (2D icons + 3D billboards)
+**Status:** things render as markers in 2D (`map_view_2d`) and as upright camera-facing billboards
+in 3D (`map_view_3d` `billboardCorners`, tested), colour-coded by a placeholder category map
+(player starts, keys, generic); slope-helper things (9500/9501) are excluded. Remaining (full A5):
+the real **sprite catalog** (ZScript/DECORATE `//$` editor keys + MAPINFO DoomEdNums + `gzdoom.pk3`)
+and promoting thing UDMF fields (`scale*`, `pitch`, `alpha`, `renderstyle`, …) to typed members.
+
 **Goal:** draw things as sprites in 2D (icons) and 3D (billboards), honoring `scale`, `angle`,
 `alpha`, `renderstyle`. **Design:** a `ThingCatalog` (from ZScript/DECORATE `//$` editor keys +
 MAPINFO DoomEdNums + `gzdoom.pk3` — see [05](design/05-text-script-editor.md)); map thing `type` →

@@ -48,6 +48,13 @@ Ray3D screenRay(const Camera3D&, double screenX, double screenY);
 // writes the map-space (x, y) = world (x, z) of the intersection and returns true.
 bool rayHitHeight(const Ray3D&, double height, util::Vec2& outMap);
 
+// Four world-space corners of an upright (rotates only around Y), camera-facing billboard whose
+// bottom sits at `baseY`, centered over map point (cx, cz) = world (x, z). Writes rows
+// {bottom-left, bottom-right, top-left, top-right} as (x, y, z). `yaw` is the camera yaw; used to
+// keep the quad broadside to the camera. This is the placeholder for thing sprites (A5).
+void billboardCorners(double cx, double baseY, double cz, float yaw, double halfWidth,
+                      double height, double out[4][3]);
+
 class MapRenderer3D {
 public:
     // `materials` is optional; when null (or a name is missing) surfaces render flat-shaded.
