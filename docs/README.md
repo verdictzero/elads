@@ -19,6 +19,7 @@ first-class target. Start with the overview, then the architecture.
 | 08 | [formats-reference](design/08-formats-reference.md) | WAD/PK3/UDMF/TEXTUREx/PNAMES/flats/sprites/sound/music reference |
 | 09 | [rpi5-target](design/09-rpi5-target.md) | BCM2712/VideoCore VII, Mesa V3D GL/GLES/Vulkan, Wayland/EGL, thermal, packaging |
 | 10 | [licensing](design/10-licensing.md) | GPLv3 rationale, SLADE v2+→v3 analysis, reuse policy, third-party inventory |
+| 11 | [udmf-advanced](design/11-udmf-advanced.md) | UDMF features UDB can do that SLADE3 can't (slopes, 3D floors, per-surface transforms, colors, portals…) + elads plan |
 
 ## Decisions
 
@@ -36,6 +37,10 @@ Architecture Decision Records live in [`decisions/`](decisions/). See the
 
 ## Planning
 
+- [implementation-plan](implementation-plan.md) — **detailed, referenceable plan for the next
+  set of work**: advanced UDMF visual features (slopes, 3D floors, texture transforms, colors,
+  sprites…), the interactive window + editing + save-back, the GLES/Pi backend, the wxWidgets
+  shell, and packaging — with per-item design, tests, deps, and a recommended sequence
 - [roadmap](roadmap.md) — phased delivery plan (Phase 0–4)
 - [risks](risks.md) — living risk register
 
