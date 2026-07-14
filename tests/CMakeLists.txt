@@ -36,7 +36,7 @@ endforeach()
 
 # GL render tests — only when the desktop OpenGL backend is built.
 if(ELADS_GL)
-    foreach(t test_gl_render test_gl_render3d test_gl_overlay test_gl_things3d test_gl_sectorcolor)
+    foreach(t test_gl_render test_gl_render3d test_gl_overlay test_gl_things3d test_gl_sectorcolor test_gl_fog)
         add_executable(${t} ${t}.cpp)
         target_link_libraries(${t} PRIVATE elads_render)
         target_include_directories(${t} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

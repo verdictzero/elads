@@ -31,18 +31,27 @@ layout(location = 2) in vec3 aTint;
 uniform mat4 uVp;
 out vec2 vUV;
 out vec3 vTint;
+out vec3 vWorld;
 void main() {
     gl_Position = uVp * vec4(aPos, 1.0);
     vUV = aUV;
     vTint = aTint;
+    vWorld = aPos;
 }
 )";
 const char* kFrag = R"(#version 330 core
 in vec2 vUV;
 in vec3 vTint;
+in vec3 vWorld;
 out vec4 fragColor;
 uniform sampler2D uTex;
-void main() { fragColor = vec4(texture(uTex, vUV).rgb * vTint, 1.0); }
+uniform vec4 uCamPos; // xyz = camera world position
+uniform vec4 uFog;    // rgb = fog colour, w = density (0 => no fog)
+void main() {
+    vec3 base = texture(uTex, vUV).rgb * vTint;
+    float f = exp(-uFog.w * length(vWorld - uCamPos.xyz)); // 1 near, ->0 far; density 0 => 1
+    fragColor = vec4(mix(uFog.rgb, base, clamp(f, 0.0, 1.0)), 1.0);
+}
 )";
 
 float shade(int light) {
@@ -360,11 +369,24 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
         }
     }
 
+    // Scene fog: use the first sector that carries a (non-zero) UDMF fadecolor. Per-sector fog is
+    // a later refinement; density 0 (no fadecolor) leaves the shader's fog term a no-op.
+    map::ColorRGB fogColor;
+    float fogDensity = 0.f;
+    for (int s = 0; s < static_cast<int>(m.sectorCount()); ++s)
+        if (map::sectorFadeColor(m.sector(s), fogColor)) {
+            fogDensity = 0.0018f; // ~half fog at ~385 units; tuned for indoor scale
+            break;
+        }
+
     ctx.setDepthTest(true);
     ctx.clear(render::Color{0.05f, 0.06f, 0.09f, 1.f});
     ctx.bindProgram(program_);
     const util::Mat4 vp = cam.viewProj();
     ctx.setUniformMat4("uVp", vp.data());
+    ctx.setUniformVec4("uCamPos", static_cast<float>(cam.x), static_cast<float>(cam.y),
+                       static_cast<float>(cam.z), 1.f);
+    ctx.setUniformVec4("uFog", fogColor.r, fogColor.g, fogColor.b, fogDensity);
 
     for (auto& kv : batches) {
         if (kv.second.empty())

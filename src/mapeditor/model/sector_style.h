@@ -42,6 +42,20 @@ inline ColorRGB sectorLightColor(const Sector& s) {
     return readColorKey(s.extra, "lightcolor", ColorRGB{1.f, 1.f, 1.f});
 }
 
+// A sector's fog (fade) colour: writes `out` and returns true when `fadecolor` is present and
+// non-zero (GZDoom treats a non-zero fadecolor as fog).
+inline bool sectorFadeColor(const Sector& s, ColorRGB& out) {
+    for (const auto& kv : s.extra)
+        if (kv.first == "fadecolor") {
+            const long v = std::strtol(kv.second.c_str(), nullptr, 0);
+            if (v != 0) {
+                out = colorFromInt(v);
+                return true;
+            }
+        }
+    return false;
+}
+
 // Read a floating-point value for `key` from `extra`, or `def` if absent.
 inline double readDoubleKey(const KeyVals& extra, const std::string& key, double def) {
     for (const auto& kv : extra)

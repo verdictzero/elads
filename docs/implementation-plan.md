@@ -102,12 +102,14 @@ rotated by `rotation*` + panning. Add pegging flags (`dontpegtop`/`dontpegbottom
 **Test:** unit test the UV transform math; headless render compares two offsets differ.
 **Deps:** A-textured renderer (done). **Acceptance:** a WAD map's aligned textures look right.
 
-### A3. Sector color / fog / glow  — **v2, M** — ✅ light colour (first cut)
-**Status:** `src/mapeditor/model/sector_style.h` reads GZDoom `lightcolor` from the sector's `extra`
-keys (lossless — no serialiser change) and the 3D view multiplies every surface tint by it
-(`map_view_3d` `withColor`); white when unset, so flat maps are unchanged. Tested
-(`test_sector_style`, `test_gl_sectorcolor`). Remaining: **fog** (`fadecolor` + a shader fog term),
-per-plane light (`lightfloor`/`lightceiling`), glow, and promoting these to typed fields.
+### A3. Sector color / fog / glow  — **v2, M** — ✅ colour + fog
+**Status:** `src/mapeditor/model/sector_style.h` reads GZDoom `lightcolor` and `fadecolor` from the
+sector's `extra` (lossless — no serialiser change). The 3D view multiplies every surface tint by
+`lightcolor` (`withColor`) and applies **distance fog** toward the scene's `fadecolor` in the
+fragment shader (per-fragment `exp(-density·dist)`); both are no-ops when the keys are absent, so
+flat maps are unchanged. Tested (`test_sector_style`, `test_gl_sectorcolor`, `test_gl_fog`).
+Remaining: **per-sector** fog colour (needs per-vertex fog data or per-sector batching), per-plane
+light (`lightfloor`/`lightceiling`), glow, and promoting these to typed fields.
 
 **Goal:** per-sector light color, fog (`fadecolor`), per-plane light (`lightfloor`/`lightceiling`),
 glow. **Design:** extend the 3D shader with a fog term (UBO: fog color + density) and multiply the
