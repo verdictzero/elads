@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "mapeditor/model/planes.h"
 #include "mapeditor/model/sector_tri.h"
 
 namespace elads::view {
@@ -76,6 +77,7 @@ Camera3D autoCamera3D(const map::MapModel& m, int width, int height) {
     Camera3D cam;
     cam.width = width;
     cam.height = height;
+    const std::vector<map::SectorPlanes> planes = map::computeSectorPlanes(m);
     bool placed = false;
     for (int s = 0; s < static_cast<int>(m.sectorCount()) && !placed; ++s) {
         const map::Triangulation t = map::triangulateSector(m, s);
@@ -85,7 +87,8 @@ Camera3D autoCamera3D(const map::MapModel& m, int width, int height) {
             const util::Vec2 c = t.points[t.indices[2]];
             cam.x = (a.x + b.x + c.x) / 3.0;
             cam.z = (a.y + b.y + c.y) / 3.0;
-            cam.y = m.sector(s).floorHeight + 56.0;
+            // Sit ~56 units above the actual (possibly sloped) floor at this point.
+            cam.y = planes[static_cast<size_t>(s)].floor.heightAt(cam.x, cam.z) + 56.0;
             placed = true;
         }
     }
@@ -158,9 +161,13 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
         return TV{(float)x, (float)y, (float)z, (float)u, (float)v, t.r, t.g, t.b};
     };
 
-    // Floors + ceilings.
+    // Sloped floor/ceiling planes per sector (flat by default).
+    const std::vector<map::SectorPlanes> planes = map::computeSectorPlanes(m);
+
+    // Floors + ceilings — height evaluated per vertex from the sector plane.
     for (int s = 0; s < static_cast<int>(m.sectorCount()); ++s) {
         const map::Sector& sec = m.sector(s);
+        const map::SectorPlanes& sp = planes[static_cast<size_t>(s)];
         const map::Triangulation t = map::triangulateSector(m, s);
         const float sh = shade(sec.lightLevel);
         const Tex ftex = resolve(sec.floorTex);
@@ -172,30 +179,31 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
         for (size_t i = 0; i + 3 <= t.indices.size(); i += 3) {
             for (int k = 0; k < 3; ++k) {
                 const util::Vec2 p = t.points[t.indices[i + k]];
-                fb.push_back(vtx(p.x, sec.floorHeight, p.y, p.x / ftex.w, p.y / ftex.h, ftint));
+                fb.push_back(vtx(p.x, sp.floor.heightAt(p.x, p.y), p.y, p.x / ftex.w, p.y / ftex.h, ftint));
             }
             for (int k = 0; k < 3; ++k) {
                 const util::Vec2 p = t.points[t.indices[i + k]];
-                cb.push_back(vtx(p.x, sec.ceilHeight, p.y, p.x / ctex.w, p.y / ctex.h, ctint));
+                cb.push_back(vtx(p.x, sp.ceil.heightAt(p.x, p.y), p.y, p.x / ctex.w, p.y / ctex.h, ctint));
             }
         }
     }
 
-    // Walls (one wall quad helper, with UV = distance-along / height).
-    auto wall = [&](util::Vec2 a, util::Vec2 b, double zBot, double zTop, const Tex& tex, RGB tint) {
-        if (zTop <= zBot)
+    // Walls — per-endpoint bottom/top heights (so walls follow sloped floors/ceilings).
+    auto wall = [&](util::Vec2 a, util::Vec2 b, double zBotA, double zTopA, double zBotB, double zTopB,
+                    const Tex& tex, RGB tint) {
+        if (zTopA <= zBotA && zTopB <= zBotB)
             return;
         const double len = (b - a).length();
         const double uMax = len / tex.w;
-        const double vMax = (zTop - zBot) / tex.h;
+        const double vA = (zTopA - zBotA) / tex.h;
+        const double vB = (zTopB - zBotB) / tex.h;
         auto& batch = batchFor(tex.handle);
-        // two triangles: (a,bot)-(b,bot)-(b,top) and (a,bot)-(b,top)-(a,top)
-        batch.push_back(vtx(a.x, zBot, a.y, 0, vMax, tint));
-        batch.push_back(vtx(b.x, zBot, b.y, uMax, vMax, tint));
-        batch.push_back(vtx(b.x, zTop, b.y, uMax, 0, tint));
-        batch.push_back(vtx(a.x, zBot, a.y, 0, vMax, tint));
-        batch.push_back(vtx(b.x, zTop, b.y, uMax, 0, tint));
-        batch.push_back(vtx(a.x, zTop, a.y, 0, 0, tint));
+        batch.push_back(vtx(a.x, zBotA, a.y, 0, vA, tint));
+        batch.push_back(vtx(b.x, zBotB, b.y, uMax, vB, tint));
+        batch.push_back(vtx(b.x, zTopB, b.y, uMax, 0, tint));
+        batch.push_back(vtx(a.x, zBotA, a.y, 0, vA, tint));
+        batch.push_back(vtx(b.x, zTopB, b.y, uMax, 0, tint));
+        batch.push_back(vtx(a.x, zTopA, a.y, 0, 0, tint));
     };
 
     for (int i = 0; i < static_cast<int>(m.linedefCount()); ++i) {
@@ -208,23 +216,29 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
         const util::Vec2 a = m.vertex(l.v1).pos;
         const util::Vec2 b = m.vertex(l.v2).pos;
         const map::Sector& f = m.sector(fs);
+        const map::SectorPlanes& fp = planes[static_cast<size_t>(fs)];
         const map::Sidedef& side = m.sidedef(l.front);
         const float sh = shade(f.lightLevel);
         const int bsIdx = m.backSector(l);
         if (bsIdx == map::kNoRef) {
             const Tex tex = resolve(side.middle);
-            wall(a, b, f.floorHeight, f.ceilHeight, tex, tintFor(tex.real, sh, 'W'));
+            wall(a, b, fp.floor.heightAt(a.x, a.y), fp.ceil.heightAt(a.x, a.y),
+                 fp.floor.heightAt(b.x, b.y), fp.ceil.heightAt(b.x, b.y), tex, tintFor(tex.real, sh, 'W'));
         } else {
-            const map::Sector& bk = m.sector(bsIdx);
-            if (bk.floorHeight > f.floorHeight || f.floorHeight > bk.floorHeight) {
+            const map::SectorPlanes& bp = planes[static_cast<size_t>(bsIdx)];
+            const double fFloA = fp.floor.heightAt(a.x, a.y), fFloB = fp.floor.heightAt(b.x, b.y);
+            const double bFloA = bp.floor.heightAt(a.x, a.y), bFloB = bp.floor.heightAt(b.x, b.y);
+            const double fCeA = fp.ceil.heightAt(a.x, a.y), fCeB = fp.ceil.heightAt(b.x, b.y);
+            const double bCeA = bp.ceil.heightAt(a.x, a.y), bCeB = bp.ceil.heightAt(b.x, b.y);
+            if (fFloA != bFloA || fFloB != bFloB) {
                 const Tex tex = resolve(side.lower);
-                wall(a, b, std::min(f.floorHeight, bk.floorHeight),
-                     std::max(f.floorHeight, bk.floorHeight), tex, tintFor(tex.real, sh, 'S'));
+                wall(a, b, std::min(fFloA, bFloA), std::max(fFloA, bFloA), std::min(fFloB, bFloB),
+                     std::max(fFloB, bFloB), tex, tintFor(tex.real, sh, 'S'));
             }
-            if (bk.ceilHeight != f.ceilHeight) {
+            if (fCeA != bCeA || fCeB != bCeB) {
                 const Tex tex = resolve(side.upper);
-                wall(a, b, std::min(f.ceilHeight, bk.ceilHeight),
-                     std::max(f.ceilHeight, bk.ceilHeight), tex, tintFor(tex.real, sh, 'S'));
+                wall(a, b, std::min(fCeA, bCeA), std::max(fCeA, bCeA), std::min(fCeB, bCeB),
+                     std::max(fCeB, bCeB), tex, tintFor(tex.real, sh, 'S'));
             }
         }
     }

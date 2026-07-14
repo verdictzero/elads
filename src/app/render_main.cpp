@@ -68,6 +68,16 @@ map::MapModel demoMap() {
     p1.pos = {64, 64};
     p1.type = 1;
     m.addThing(p1);
+
+    // Three floor slope things (type 9500) tilt the floor upward toward the back-left.
+    const double slope[3][3] = {{20, 20, 0}, {360, 20, 0}, {100, 236, 88}};
+    for (auto& s : slope) {
+        map::Thing t;
+        t.pos = {s[0], s[1]};
+        t.z = s[2];
+        t.type = 9500;
+        m.addThing(t);
+    }
     return m;
 }
 

@@ -22,6 +22,7 @@ add_library(elads_core STATIC
     mapeditor/model/udmf.cpp
     mapeditor/model/sector_tri.cpp
     mapeditor/model/map_checks.cpp
+    mapeditor/model/planes.cpp
     graphics/palette.cpp
     graphics/doom_gfx.cpp
     graphics/texturex.cpp

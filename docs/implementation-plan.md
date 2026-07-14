@@ -46,7 +46,11 @@ visual features.
 
 ## Track A — Visual-mode fidelity (UDB parity)
 
-### A1. Sector slopes  — **v1, M**
+### A1. Sector slopes  — **v1, M** — ✅ FIRST CUT DONE
+**Status:** `src/mapeditor/model/planes.{h,cpp}` (Plane/SectorPlanes/computeSectorPlanes/sectorAt),
+slope things 9500/9501 → 3-point planes, 3D renderer evaluates per-vertex heights for floors,
+ceilings, and walls; `test_slopes` + a sloped `render-demo3d`. **Remaining:** Plane_Align (181),
+Plane_Copy (118), UDMF vertex heights; 2D slope arrows.
 **Goal:** floor/ceiling planes tilt; 3D view renders sloped floors/ceilings/walls.
 **Design:**
 - New `src/mapeditor/model/planes.{h,cpp}`:

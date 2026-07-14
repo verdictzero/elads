@@ -17,6 +17,7 @@ set(ELADS_TESTS
     test_map_checks
     test_png
     test_wad_materials
+    test_slopes
 )
 
 foreach(t ${ELADS_TESTS})
