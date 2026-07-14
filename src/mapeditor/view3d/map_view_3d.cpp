@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "mapeditor/model/planes.h"
+#include "mapeditor/model/sector_style.h"
 #include "mapeditor/model/sector_tri.h"
 #include "mapeditor/model/tex_align.h"
 
@@ -75,6 +76,9 @@ RGB tintFor(bool real, float sh, char kind) {
         default:  return {sh * 0.82f, sh * 0.82f, sh * 0.85f}; // wall
     }
 }
+
+// Modulate a surface tint by the sector's light colour (GZDoom `lightcolor`; white = no change).
+RGB withColor(RGB t, map::ColorRGB c) { return {t.r * c.r, t.g * c.g, t.b * c.b}; }
 
 } // namespace
 
@@ -234,10 +238,11 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
         const map::SectorPlanes& pl = planes[static_cast<size_t>(s)];
         const map::Triangulation t = map::triangulateSector(m, s);
         const float sh = shade(sec.lightLevel);
+        const map::ColorRGB lc = map::sectorLightColor(sec);
         const Tex ftex = resolve(sec.floorTex);
         const Tex ctex = resolve(sec.ceilTex);
-        const RGB ftint = tintFor(ftex.real, sh, 'F');
-        const RGB ctint = tintFor(ctex.real, sh, 'C');
+        const RGB ftint = withColor(tintFor(ftex.real, sh, 'F'), lc);
+        const RGB ctint = withColor(tintFor(ctex.real, sh, 'C'), lc);
         auto& fb = batchFor(ftex.handle);
         auto& cb = batchFor(ctex.handle);
         for (size_t i = 0; i + 3 <= t.indices.size(); i += 3) {
@@ -292,6 +297,7 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
         const map::SectorPlanes& fp = planes[static_cast<size_t>(fs)];
         const map::Sidedef& side = m.sidedef(l.front);
         const float sh = shade(f.lightLevel);
+        const map::ColorRGB lc = map::sectorLightColor(f);
         const bool pegTop = (l.flags & map::kFlagDontPegTop) != 0;
         const bool pegBot = (l.flags & map::kFlagDontPegBottom) != 0;
         const double fCeilA = fp.ceil.heightAt(a), fCeilB = fp.ceil.heightAt(b);
@@ -299,7 +305,7 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
         if (bsIdx == map::kNoRef) {
             const Tex tex = resolve(side.middle);
             wall(a, b, fp.floor.heightAt(a), fCeilA, fp.floor.heightAt(b), fCeilB, tex,
-                 tintFor(tex.real, sh, 'W'), map::WallPart::OneSidedMiddle, side, pegTop, pegBot,
+                 withColor(tintFor(tex.real, sh, 'W'), lc), map::WallPart::OneSidedMiddle, side, pegTop, pegBot,
                  fCeilA, fCeilB);
         } else {
             const map::SectorPlanes& bp = planes[static_cast<size_t>(bsIdx)];
@@ -309,7 +315,7 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
             if (fFA != bFA || fFB != bFB) {
                 const Tex tex = resolve(side.lower);
                 wall(a, b, std::min(fFA, bFA), std::max(fFA, bFA), std::min(fFB, bFB),
-                     std::max(fFB, bFB), tex, tintFor(tex.real, sh, 'S'), map::WallPart::Lower, side,
+                     std::max(fFB, bFB), tex, withColor(tintFor(tex.real, sh, 'S'), lc), map::WallPart::Lower, side,
                      pegTop, pegBot, fCeilA, fCeilB);
             }
             // Upper: between the two ceiling planes.
@@ -318,7 +324,7 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
             if (fCA != bCA || fCB != bCB) {
                 const Tex tex = resolve(side.upper);
                 wall(a, b, std::min(fCA, bCA), std::max(fCA, bCA), std::min(fCB, bCB),
-                     std::max(fCB, bCB), tex, tintFor(tex.real, sh, 'S'), map::WallPart::Upper, side,
+                     std::max(fCB, bCB), tex, withColor(tintFor(tex.real, sh, 'S'), lc), map::WallPart::Upper, side,
                      pegTop, pegBot, fCeilA, fCeilB);
             }
         }
