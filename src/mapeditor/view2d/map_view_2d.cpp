@@ -44,6 +44,11 @@ render::BufferHandle upload(render::IRenderDevice& dev, const std::vector<MV>& v
                             verts.data(), verts.size() * sizeof(MV));
 }
 
+// vec2 position @0, vec4 color @8, stride 24.
+constexpr render::VertexAttrib kAttribs[] = {{0, render::AttribType::Float2, 0},
+                                             {1, render::AttribType::Float4, 8}};
+constexpr render::VertexLayout kLayout{kAttribs, 2, sizeof(MV)};
+
 } // namespace
 
 Camera2D fitCamera(const map::MapModel& m, int width, int height, double marginFrac) {
@@ -93,6 +98,7 @@ void MapRenderer2D::render(render::IRenderContext& ctx, const map::MapModel& m, 
     float mvp[16];
     cameraOrtho(cam, mvp);
 
+    ctx.setDepthTest(false); // 2D layers draw back-to-front
     ctx.clear(render::Color{0.09f, 0.09f, 0.11f, 1.f});
     ctx.bindProgram(program_);
     ctx.setUniformMat4("uMvp", mvp);
@@ -101,7 +107,7 @@ void MapRenderer2D::render(render::IRenderContext& ctx, const map::MapModel& m, 
         if (verts.empty())
             return;
         const render::BufferHandle buf = upload(dev_, verts);
-        ctx.bindVertexBuffer(buf);
+        ctx.bindVertexBuffer(buf, kLayout);
         ctx.draw(topo, 0, static_cast<uint32_t>(verts.size()));
         dev_.destroyBuffer(buf); // immediate-mode backend: draw already issued
     };

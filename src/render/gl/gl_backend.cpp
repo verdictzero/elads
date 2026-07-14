@@ -172,19 +172,30 @@ void GLContext::clear(const Color& c) {
 
 void GLContext::setViewport(const Viewport& vp) { glViewport(vp.x, vp.y, vp.width, vp.height); }
 
+void GLContext::setDepthTest(bool enabled) {
+    if (enabled)
+        glEnable(GL_DEPTH_TEST);
+    else
+        glDisable(GL_DEPTH_TEST);
+}
+
 void GLContext::bindProgram(ShaderHandle h) {
     currentProgram_ = static_cast<unsigned>(h);
     glUseProgram(currentProgram_);
 }
 
-void GLContext::bindVertexBuffer(BufferHandle h) {
+void GLContext::bindVertexBuffer(BufferHandle h, const VertexLayout& layout) {
     glBindBuffer(GL_ARRAY_BUFFER, static_cast<GLuint>(h));
-    // Standard "map vertex": vec2 position @0, vec4 color @8, stride 24.
-    const GLsizei stride = 6 * sizeof(float);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>(0));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>(2 * sizeof(float)));
+    for (GLuint i = 0; i < 8; ++i)
+        glDisableVertexAttribArray(i); // clear any stale attributes from a prior layout
+    for (unsigned i = 0; i < layout.count; ++i) {
+        const VertexAttrib& a = layout.attribs[i];
+        const GLint comps = a.type == AttribType::Float2 ? 2 : a.type == AttribType::Float3 ? 3 : 4;
+        glEnableVertexAttribArray(a.location);
+        glVertexAttribPointer(a.location, comps, GL_FLOAT, GL_FALSE,
+                              static_cast<GLsizei>(layout.strideBytes),
+                              reinterpret_cast<void*>(static_cast<size_t>(a.offsetBytes)));
+    }
 }
 
 void GLContext::bindIndexBuffer(BufferHandle h, IndexType t) {

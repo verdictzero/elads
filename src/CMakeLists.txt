@@ -29,6 +29,7 @@ add_library(elads_core STATIC
     graphics/composite.cpp
     graphics/png.cpp
     mapeditor/view2d/map_view_2d.cpp
+    mapeditor/view3d/map_view_3d.cpp
 )
 
 target_include_directories(elads_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

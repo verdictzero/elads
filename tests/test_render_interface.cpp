@@ -51,8 +51,9 @@ public:
     void endFrame() override {}
     void clear(const Color&) override { ++clears; }
     void setViewport(const Viewport& vp) override { lastVp = vp; }
+    void setDepthTest(bool) override {}
     void bindProgram(ShaderHandle) override {}
-    void bindVertexBuffer(BufferHandle) override {}
+    void bindVertexBuffer(BufferHandle, const VertexLayout&) override {}
     void bindIndexBuffer(BufferHandle, IndexType) override {}
     void bindUniformBuffer(unsigned, BufferHandle) override {}
     void bindTexture(unsigned, TextureHandle) override {}
@@ -105,7 +106,8 @@ static void run() {
     ctx.beginFrame(vp);
     ctx.clear(Color{0.1f, 0.1f, 0.1f, 1.f});
     ctx.bindProgram(prog);
-    ctx.bindVertexBuffer(vbo);
+    const VertexAttrib attribs[] = {{0, AttribType::Float2, 0}, {1, AttribType::Float4, 8}};
+    ctx.bindVertexBuffer(vbo, VertexLayout{attribs, 2, 24});
     ctx.bindTexture(0, tex);
     ctx.draw(Topology::Triangles, 0, 3);
     ctx.draw(Topology::Lines, 0, 8);

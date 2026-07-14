@@ -24,8 +24,11 @@ The **GUI/GL-free core** now has its first real, tested code (build with
   (`GLDevice`/`GLContext` — desktop GL 3.3+ implementation of the abstraction),
   `offscreen.{h,cpp}` (FBO + readback)
 - `mapeditor/view2d/` — `map_view_2d.{h,cpp}` (`MapRenderer2D`, backend-agnostic 2D map view)
+- `mapeditor/view3d/` — `map_view_3d.{h,cpp}` (`MapRenderer3D` + `Camera3D`, 3D visual mode:
+  walls from sector heights, earcut floors/ceilings, perspective + depth)
+- `util/mat4.h` — column-major 4×4 matrix math for the 3D camera
 - `app/` — `cli_main.cpp` (the GL-free `elads` CLI), `render_main.cpp` (the `elads-render`
-  headless map→PNG tool)
+  headless map→PNG tool: `render-demo`/`render-map`/`render-demo3d`/`render-map3d`)
 
 Vendored: `third_party/earcut/` (ISC) for triangulation; `third_party/miniz/` (public domain)
 for PK3/zip + PNG.

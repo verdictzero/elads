@@ -31,6 +31,20 @@ enum class Topology { Points, Lines, LineStrip, Triangles, TriangleStrip };
 enum class TextureFormat { RGBA8, RGB8, R8 };
 enum class IndexType { U16, U32 };
 
+// Vertex attribute layout, so different renderers (2D vec2+color, 3D vec3+color, textured …)
+// can share one backend. Attributes are always tightly-packed floats at byte offsets.
+enum class AttribType { Float2, Float3, Float4 };
+struct VertexAttrib {
+    unsigned location = 0;
+    AttribType type = AttribType::Float2;
+    unsigned offsetBytes = 0;
+};
+struct VertexLayout {
+    const VertexAttrib* attribs = nullptr;
+    unsigned count = 0;
+    unsigned strideBytes = 0;
+};
+
 // --- Descriptors ----------------------------------------------------------------
 struct TextureDesc {
     int width = 0;
@@ -100,9 +114,10 @@ public:
 
     virtual void clear(const Color&) = 0;
     virtual void setViewport(const Viewport&) = 0;
+    virtual void setDepthTest(bool enabled) = 0; // off for 2D layering, on for 3D
 
     virtual void bindProgram(ShaderHandle) = 0;
-    virtual void bindVertexBuffer(BufferHandle) = 0;
+    virtual void bindVertexBuffer(BufferHandle, const VertexLayout&) = 0;
     virtual void bindIndexBuffer(BufferHandle, IndexType) = 0;
     virtual void bindUniformBuffer(unsigned slot, BufferHandle) = 0;
     virtual void bindTexture(unsigned unit, TextureHandle) = 0;

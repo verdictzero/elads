@@ -16,9 +16,12 @@ SLADE aggressively, and phase 3D fidelity*.
 >
 > **Desktop OpenGL variant** now builds (Linux x86-64, `cmake --preset desktop`, 15 tests): an
 > **EGL + OpenGL 3.3 backend** implementing the render abstraction (`src/render/gl`), a
-> backend-agnostic **2D map renderer** (`src/mapeditor/view2d`), and **`elads-render`**, which
-> draws a map's 2D view to a PNG headlessly (verified on Mesa software GL). The **Pi/GLES port**
-> swaps only the backend + shader `#version` behind the same interface.
+> backend-agnostic **2D map renderer** and a **3D visual-mode preview** (`src/mapeditor/view2d`,
+> `view3d`: perspective walls from sector heights + earcut floors/ceilings + depth), and
+> **`elads-render`**, which draws both to a PNG headlessly (verified on Mesa software GL,
+> 16 tests). The **Pi/GLES port** swaps only the backend + shader `#version` behind the same
+> interface. 3D is untextured/light-shaded for now; **textures, slopes, and 3D floors** are the
+> next visual-mode stages.
 
 ## Phase 0 — On-device bring-up spike (2–4 weeks)
 

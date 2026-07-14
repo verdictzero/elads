@@ -25,10 +25,12 @@ foreach(t ${ELADS_TESTS})
     add_test(NAME ${t} COMMAND ${t})
 endforeach()
 
-# GL render test — only when the desktop OpenGL backend is built.
+# GL render tests — only when the desktop OpenGL backend is built.
 if(ELADS_GL)
-    add_executable(test_gl_render test_gl_render.cpp)
-    target_link_libraries(test_gl_render PRIVATE elads_render)
-    target_include_directories(test_gl_render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-    add_test(NAME test_gl_render COMMAND test_gl_render)
+    foreach(t test_gl_render test_gl_render3d)
+        add_executable(${t} ${t}.cpp)
+        target_link_libraries(${t} PRIVATE elads_render)
+        target_include_directories(${t} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+        add_test(NAME ${t} COMMAND ${t})
+    endforeach()
 endif()

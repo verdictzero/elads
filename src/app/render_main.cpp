@@ -17,6 +17,7 @@
 #include "mapeditor/model/doom_map_io.h"
 #include "mapeditor/model/udmf.h"
 #include "mapeditor/view2d/map_view_2d.h"
+#include "mapeditor/view3d/map_view_3d.h"
 #include "render/gl/egl_headless.h"
 #include "render/gl/gl_backend.h"
 #include "render/gl/offscreen.h"
@@ -96,6 +97,34 @@ int renderToPng(const map::MapModel& model, int w, int h, const std::string& out
     return 0;
 }
 
+int render3DToPng(const map::MapModel& model, int w, int h, const std::string& out) {
+    std::string err;
+    render::HeadlessGL gl;
+    if (!gl.init(3, 3, &err)) {
+        std::fprintf(stderr, "GL init failed: %s\n", err.c_str());
+        return 1;
+    }
+    render::GLDevice dev;
+    render::GLContext ctx;
+    render::OffscreenTarget fbo;
+    if (!fbo.init(w, h, &err)) {
+        std::fprintf(stderr, "offscreen init failed: %s\n", err.c_str());
+        return 1;
+    }
+    fbo.bind();
+    ctx.beginFrame(fbo.viewport());
+    {
+        view::MapRenderer3D renderer(dev);
+        const view::Camera3D cam = view::autoCamera3D(model, w, h);
+        renderer.render(ctx, model, cam);
+    }
+    ctx.endFrame();
+    writeFile(out, gfx::encodePng(fbo.readback(true)));
+    std::printf("wrote %s (%dx%d, 3D)  GL: %s / %s\n", out.c_str(), w, h, gl.glVersion().c_str(),
+                gl.glRenderer().c_str());
+    return 0;
+}
+
 map::MapModel loadMap(const std::string& wadPath, const std::string& mapName) {
     const archive::Wad wad = archive::Wad::read(readFile(wadPath));
     for (const auto& e : map::findMaps(wad)) {
@@ -114,9 +143,11 @@ map::MapModel loadMap(const std::string& wadPath, const std::string& mapName) {
 }
 
 int usage() {
-    std::puts("elads-render — headless 2D map renderer\n");
-    std::puts("  elads-render render-demo <out.png> [w h]");
-    std::puts("  elads-render render-map  <file.wad> <MAPNAME> <out.png> [w h]");
+    std::puts("elads-render — headless map renderer\n");
+    std::puts("  elads-render render-demo   <out.png> [w h]        2D top-down");
+    std::puts("  elads-render render-map    <file.wad> <MAP> <out.png> [w h]");
+    std::puts("  elads-render render-demo3d <out.png> [w h]        3D visual mode");
+    std::puts("  elads-render render-map3d  <file.wad> <MAP> <out.png> [w h]");
     return 2;
 }
 
@@ -137,6 +168,16 @@ int main(int argc, char** argv) {
             const int w = argc >= 7 ? std::atoi(argv[5]) : 800;
             const int h = argc >= 7 ? std::atoi(argv[6]) : 600;
             return renderToPng(loadMap(argv[2], argv[3]), w, h, argv[4]);
+        }
+        if (cmd == "render-demo3d" && argc >= 3) {
+            const int w = argc >= 5 ? std::atoi(argv[3]) : 900;
+            const int h = argc >= 5 ? std::atoi(argv[4]) : 600;
+            return render3DToPng(demoMap(), w, h, argv[2]);
+        }
+        if (cmd == "render-map3d" && argc >= 5) {
+            const int w = argc >= 7 ? std::atoi(argv[5]) : 900;
+            const int h = argc >= 7 ? std::atoi(argv[6]) : 600;
+            return render3DToPng(loadMap(argv[2], argv[3]), w, h, argv[4]);
         }
         return usage();
     } catch (const std::exception& e) {

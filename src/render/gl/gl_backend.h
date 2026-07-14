@@ -36,9 +36,10 @@ public:
     void endFrame() override;
     void clear(const Color&) override;
     void setViewport(const Viewport&) override;
+    void setDepthTest(bool enabled) override;
 
     void bindProgram(ShaderHandle) override;
-    void bindVertexBuffer(BufferHandle) override;
+    void bindVertexBuffer(BufferHandle, const VertexLayout&) override;
     void bindIndexBuffer(BufferHandle, IndexType) override;
     void bindUniformBuffer(unsigned slot, BufferHandle) override;
     void bindTexture(unsigned unit, TextureHandle) override;

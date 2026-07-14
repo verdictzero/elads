@@ -15,7 +15,8 @@ into a **single native GPLv3 application** that runs **hardware-accelerated on a
 > **validation**; palette, **Doom picture**/**flat** codecs, **TEXTUREx/PNAMES** and
 > **composite-texture assembly**; PNG output; and an **`elads` CLI**. The desktop variant adds
 > an **EGL/OpenGL backend** implementing the render abstraction and **`elads-render`**, which
-> draws a map's 2D view to a PNG headlessly (proven on Mesa software GL). See [`docs/`](docs/).
+> draws a map's **2D top-down** *and* **3D visual-mode** views to a PNG headlessly (proven on
+> Mesa software GL). See [`docs/`](docs/).
 
 ---
 
@@ -96,8 +97,10 @@ libgl-dev libgles-dev libgbm-dev libgl1-mesa-dri` — see `scripts/bootstrap-des
 ```sh
 cmake --preset desktop && cmake --build --preset desktop
 ctest --preset desktop                                   # incl. headless GL render test
-./build/desktop/src/elads-render render-demo demo.png            # sample map -> PNG
-./build/desktop/src/elads-render render-map DOOM.wad E1M1 e1m1.png 1200 900
+./build/desktop/src/elads-render render-demo   demo.png          # 2D top-down -> PNG
+./build/desktop/src/elads-render render-demo3d demo3d.png        # 3D visual mode -> PNG
+./build/desktop/src/elads-render render-map   DOOM.wad E1M1 e1m1.png 1200 900
+./build/desktop/src/elads-render render-map3d DOOM.wad E1M1 e1m1_3d.png 1200 900
 ```
 
 Try the CLI (writes a sample WAD with a binary and a UDMF map, then inspects it):
