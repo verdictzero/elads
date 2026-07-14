@@ -8,9 +8,16 @@ add_library(elads_core STATIC
     mapeditor/model/map_model.cpp
     mapeditor/model/doom_map_io.cpp
     mapeditor/model/udmf.cpp
+    mapeditor/model/sector_tri.cpp
+    graphics/palette.cpp
+    graphics/doom_gfx.cpp
+    graphics/texturex.cpp
 )
 
 target_include_directories(elads_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# Vendored header-only earcut (ADR-0008), used by sector_tri.cpp. SYSTEM so its warnings
+# don't surface under -Wall -Wextra.
+target_include_directories(elads_core SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/third_party/earcut)
 target_compile_features(elads_core PUBLIC cxx_std_17)
 
 if(MSVC)

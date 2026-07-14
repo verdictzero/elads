@@ -7,6 +7,9 @@ set(ELADS_TESTS
     test_render_interface
     test_doom_map_io
     test_udmf
+    test_doom_gfx
+    test_texturex
+    test_sector_tri
 )
 
 foreach(t ${ELADS_TESTS})

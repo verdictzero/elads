@@ -10,10 +10,11 @@ into a **single native GPLv3 application** that runs **hardware-accelerated on a
 
 > **Status: pre-alpha.** This repository contains the comprehensive internal **design
 > documentation**, the **project scaffolding**, and a working **GUI/GL-free core** with a
-> passing test suite: WAD read/write, the map data model, **classic Doom binary** and
-> **UDMF** map (de)serialization (lossless round-trip), the render-abstraction interface,
-> and an **`elads` CLI** that inspects WADs and maps. The GUI/OpenGL layers are not built
-> yet. See [`docs/`](docs/) for the full design and [`docs/roadmap.md`](docs/roadmap.md).
+> passing test suite (8 tests): WAD read/write, the map data model, **classic Doom binary**
+> and **UDMF** map (de)serialization (lossless), palette + **Doom picture** decode/encode,
+> **TEXTUREx/PNAMES**, **earcut sector triangulation**, the render-abstraction interface, and
+> an **`elads` CLI**. The GUI/OpenGL layers are not built yet. See [`docs/`](docs/) for the
+> full design and [`docs/roadmap.md`](docs/roadmap.md).
 
 ---
 
