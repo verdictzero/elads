@@ -11,7 +11,11 @@ The **GUI/GL-free core** now has its first real, tested code (build with
   (ordered lump-type detection pipeline)
 - `mapeditor/model/` — `map_objects.h`, `map_model.{h,cpp}` (geometry model + topology/hit-test),
   `doom_map_io.{h,cpp}` (classic Doom binary maps + map discovery), `udmf.{h,cpp}` (UDMF text, lossless),
-  `sector_tri.{h,cpp}` (boundary tracing + earcut triangulation), `map_checks.{h,cpp}` (validation)
+  `sector_tri.{h,cpp}` (boundary tracing + earcut triangulation), `map_checks.{h,cpp}` (validation),
+  `planes.{h,cpp}` (sloped floor/ceiling planes + point-in-sector), `tex_align.h` (wall texture
+  offsets + peg rules), `map_save.{h,cpp}` (save an edited map back into a WAD)
+- `mapeditor/edit/` — `selection.{h,cpp}` (pick), `map_edit.{h,cpp}` (undoable ops), `editor.{h,cpp}`
+  (interactive 2D-editor controller: select/drag/draw/undo + camera)
 - `graphics/` — `image.h` (RGBA8), `palette.{h,cpp}` (PLAYPAL + nearest-color),
   `doom_gfx.{h,cpp}` (Doom picture decode/encode), `flat.{h,cpp}` (flats), `texturex.{h,cpp}`
   (PNAMES + TEXTUREx), `composite.{h,cpp}` (assemble a texture from patches), `png.{h,cpp}`

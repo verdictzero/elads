@@ -28,8 +28,10 @@ Floor/ceiling planes that tilt. Sources UDB supports and renders:
 - **UDMF sector plane fields** (GZDoom) — explicit floor/ceiling plane equations.
 
 UDB renders all of these in 2D (slope arrows) and 3D visual mode, with drag handles.
-**elads:** `model` + `render` **v1** (this doc's implementation begins with slope things +
-3-point planes; see `src/mapeditor/model/planes.*`). Plane_Align/Copy/vertex → v2.
+**elads:** ✅ **done (first cut)** — slope things (9500/9501) → 3-point planes **and Plane_Align
+(181)**, evaluated per-vertex for floors/ceilings and per-endpoint for walls in the 3D view
+(`src/mapeditor/model/planes.*`, `test_slopes`, sloped `render-demo3d`). Remaining: Plane_Copy
+(118), UDMF vertex `zfloor`/`zceiling`, 2D slope arrows, and visual-mode drag handles.
 
 ### 2. 3D floors
 Extra floors inside a sector defined by a **control sector** referenced by **Sector_Set3DFloor**
