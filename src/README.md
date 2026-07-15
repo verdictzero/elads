@@ -16,6 +16,7 @@ The **GUI/GL-free core** now has its first real, tested code (build with
   offsets + peg rules), `map_save.{h,cpp}` (save an edited map back into a WAD)
 - `mapeditor/edit/` — `selection.{h,cpp}` (pick), `map_edit.{h,cpp}` (undoable ops), `editor.{h,cpp}`
   (interactive 2D-editor controller: select/drag/draw/undo + camera)
+- `nodebuild/` — `nodebuild.{h,cpp}` (embedded BSP node builder: SEGS/SSECTORS/NODES/BLOCKMAP/REJECT)
 - `graphics/` — `image.h` (RGBA8), `palette.{h,cpp}` (PLAYPAL + nearest-color),
   `doom_gfx.{h,cpp}` (Doom picture decode/encode), `flat.{h,cpp}` (flats), `texturex.{h,cpp}`
   (PNAMES + TEXTUREx), `composite.{h,cpp}` (assemble a texture from patches), `png.{h,cpp}`

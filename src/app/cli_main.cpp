@@ -18,7 +18,9 @@
 #include "archive/pk3.h"
 #include "archive/wad.h"
 #include "mapeditor/model/doom_map_io.h"
+#include "mapeditor/model/map_save.h"
 #include "mapeditor/model/udmf.h"
+#include "nodebuild/nodebuild.h"
 
 using namespace elads;
 
@@ -125,10 +127,49 @@ int usage() {
     std::puts("  elads wad-info <file.wad>");
     std::puts("  elads lump-types <file.wad>");
     std::puts("  elads map-info <file.wad> <MAPNAME>");
+    std::puts("  elads build-nodes <in.wad> <MAPNAME> <out.wad>");
     std::puts("  elads demo-wad <out.wad>");
     std::puts("  elads pk3-info <file.pk3>");
     std::puts("  elads demo-pk3 <out.pk3>");
     return 2;
+}
+
+// Load a binary map from a WAD, build its nodes with the embedded builder, and write a new WAD
+// with the same map made playable (editable lumps + SEGS/SSECTORS/NODES/REJECT/BLOCKMAP).
+int buildNodes(const std::string& inPath, const std::string& mapName, const std::string& outPath) {
+    archive::Wad wad = archive::Wad::read(readFile(inPath));
+    int marker = -1;
+    map::MapFormat fmt = map::MapFormat::Doom;
+    for (const auto& e : map::findMaps(wad)) {
+        if (e.name != mapName)
+            continue;
+        if (e.udmf)
+            throw std::runtime_error("build-nodes: '" + mapName + "' is UDMF; only binary maps are supported");
+        marker = e.marker;
+        fmt = map::detectMapFormat(map::mapLumps(wad, e.marker));
+        break;
+    }
+    if (marker < 0)
+        throw std::runtime_error("map '" + mapName + "' not found");
+
+    const map::MapModel model = map::loadMapFromWad(wad, mapName);
+    const std::vector<archive::Lump> built = nodebuild::buildMapLumps(model, fmt);
+
+    // Replace the map's data run [marker+1, end) with the freshly built, playable lumps.
+    auto& L = wad.lumps();
+    size_t begin = static_cast<size_t>(marker) + 1, end = begin;
+    while (end < L.size() && map::isMapDataLump(L[end].name))
+        ++end;
+    L.erase(L.begin() + static_cast<std::ptrdiff_t>(begin),
+            L.begin() + static_cast<std::ptrdiff_t>(end));
+    L.insert(L.begin() + static_cast<std::ptrdiff_t>(begin), built.begin(), built.end());
+
+    writeFile(outPath, wad.write());
+    const nodebuild::BuildResult stats = nodebuild::buildNodes(model);
+    std::printf("built %s: %d segs, %d subsectors, %d nodes, %d split verts -> %s\n",
+                mapName.c_str(), stats.stats.segs, stats.stats.subsectors, stats.stats.nodes,
+                stats.stats.splitVertices, outPath.c_str());
+    return 0;
 }
 
 int wadInfo(const std::string& path) {
@@ -207,6 +248,8 @@ int main(int argc, char** argv) {
             return lumpTypes(argv[2]);
         if (argc >= 4 && std::string(argv[1]) == "map-info")
             return mapInfo(argv[2], argv[3]);
+        if (argc >= 5 && std::string(argv[1]) == "build-nodes")
+            return buildNodes(argv[2], argv[3], argv[4]);
         if (argc >= 3 && std::string(argv[1]) == "demo-wad")
             return demoWad(argv[2]);
         if (argc >= 3 && std::string(argv[1]) == "pk3-info")

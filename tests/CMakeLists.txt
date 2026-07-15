@@ -17,6 +17,7 @@ set(ELADS_TESTS
     test_map_edit
     test_map_save
     test_hexen_map
+    test_nodebuild
     test_editor
     test_billboard
     test_sector_style

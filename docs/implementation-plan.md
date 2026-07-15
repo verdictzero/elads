@@ -262,11 +262,14 @@ with the `desktop` job (done) + a Pi/arm64 GLES job + packaging jobs. **Deps:** 
 
 ## Track D — Remaining core / pipeline
 
-### D1. Node-build + ACS + playtest pipeline wiring  — **v1, M**
-**Goal:** author → build → play. **Design:** `src/pipeline/*` invoking the tools from
-`scripts/build-toolchain.sh` (AJBSP embedded or ZDBSP external, `acc`), then a one-click GZDoom-GLES
-launch capturing `-stdout` for error surfacing (see [07](design/07-build-test-pipeline.md)). **Test:**
-build a small map's nodes; on the Pi, a manual playtest loop. **Acceptance:** "play map" works.
+### D1. Node-build + ACS + playtest pipeline wiring  — **v1, M** — ◐ node build embedded
+**Status:** the **node builder is embedded** (`src/nodebuild`, not an external subprocess): a
+self-contained recursive BSP producing vanilla SEGS/SSECTORS/NODES/BLOCKMAP/REJECT + augmented
+VERTEXES from a `MapModel`, with `buildMapLumps` assembling a canonical playable map and the CLI
+`elads build-nodes <in.wad> <MAP> <out.wad>` (`test_nodebuild` validates lump layouts, index ranges,
+seg coverage, and point-in-subsector descent). Remaining: **ACS compile** (`acc`/`bcc`), and the
+one-click GZDoom-GLES **playtest** launch capturing `-stdout` for error surfacing (see
+[07](design/07-build-test-pipeline.md)) — both shell out to tools from `scripts/build-toolchain.sh`.
 
 ### D2. Hexen-format maps  — **v2, S/M** — ✅ done
 `doom_map_io` reads/writes Hexen THINGS (20B: tid/z/special/args) and LINEDEFS (16B: special+args)
