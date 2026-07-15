@@ -37,7 +37,10 @@ UDB renders all of these in 2D (slope arrows) and 3D visual mode, with drag hand
 Extra floors inside a sector defined by a **control sector** referenced by **Sector_Set3DFloor**
 (line special 160): stacked, translucent, swimmable, non-solid, fog, with their own textures and
 light. UDB renders the slabs and lets you edit them in visual mode. SLADE3 does not.
-**elads:** `preserved` today; `render` (synthesized slab geometry) + `model` **v2**.
+**elads:** ✅ **first cut** — `compute3DFloors` maps control→target sectors and the 3D view
+synthesizes opaque slab geometry (caps + side walls) with depth (`threed_floors.*`,
+`test_threed_floors`/`test_gl_3dfloor`, demo `render-demo-3dfloor`). Remaining: translucency,
+per-type behaviour, and visual-mode editing.
 
 ### 3. Per-surface texture transforms (UDMF)
 UDB edits and renders, per sidedef part and per flat:

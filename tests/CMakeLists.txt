@@ -11,6 +11,7 @@ set(ELADS_TESTS
     test_texturex
     test_sector_tri
     test_slopes
+    test_threed_floors
     test_tex_align
     test_pick
     test_map_edit
@@ -37,7 +38,7 @@ endforeach()
 
 # GL render tests — only when the desktop OpenGL backend is built.
 if(ELADS_GL)
-    foreach(t test_gl_render test_gl_render3d test_gl_overlay test_gl_things3d test_gl_sectorcolor test_gl_fog)
+    foreach(t test_gl_render test_gl_render3d test_gl_overlay test_gl_things3d test_gl_sectorcolor test_gl_fog test_gl_3dfloor)
         add_executable(${t} ${t}.cpp)
         target_link_libraries(${t} PRIVATE elads_render)
         target_include_directories(${t} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

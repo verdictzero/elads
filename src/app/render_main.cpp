@@ -111,6 +111,67 @@ map::MapModel slopeDemoMap() {
     return m;
 }
 
+// A room (tag 7) with a mid-height 3D floor from a control sector — exercises the A4 slab path.
+map::MapModel threeDFloorDemoMap() {
+    map::MapModel m;
+    const double s = 448;
+    m.addVertex({0, 0});
+    m.addVertex({s, 0});
+    m.addVertex({s, s});
+    m.addVertex({0, s});
+    map::Sector room;
+    room.floorHeight = 0;
+    room.ceilHeight = 256;
+    room.lightLevel = 210;
+    room.floorTex = "FLOOR";
+    room.ceilTex = "CEIL";
+    room.tag = 7;
+    m.addSector(room);
+    for (int i = 0; i < 4; ++i) {
+        map::Sidedef sd;
+        sd.sector = 0;
+        sd.middle = "BRICK";
+        const int side = m.addSidedef(sd);
+        map::Linedef l;
+        l.v1 = i;
+        l.v2 = (i + 1) % 4;
+        l.front = side;
+        m.addLinedef(l);
+    }
+    // Control sector off to the side; its floor..ceiling become the slab, textured BRICK/FLOOR.
+    const int c0 = m.addVertex({600, 0});
+    const int c1 = m.addVertex({664, 0});
+    const int c2 = m.addVertex({664, 64});
+    const int c3 = m.addVertex({600, 64});
+    map::Sector control;
+    control.floorHeight = 96;
+    control.ceilHeight = 152;
+    control.floorTex = "FLOOR";
+    control.ceilTex = "FLOOR";
+    m.addSector(control);
+    const int cv[4] = {c0, c1, c2, c3};
+    for (int i = 0; i < 4; ++i) {
+        map::Sidedef sd;
+        sd.sector = 1;
+        sd.middle = "BRICK";
+        const int side = m.addSidedef(sd);
+        map::Linedef l;
+        l.v1 = cv[i];
+        l.v2 = cv[(i + 1) % 4];
+        l.front = side;
+        if (i == 0) {
+            l.special = 160; // Sector_Set3DFloor
+            l.args = {7, 1, 0, 255, 0};
+        }
+        m.addLinedef(l);
+    }
+    map::Thing p1;
+    p1.pos = {64, 64};
+    p1.type = 1;
+    m.addThing(p1);
+    return m;
+}
+
 int renderToPng(const map::MapModel& model, int w, int h, const std::string& out) {
     std::string err;
     render::HeadlessGL gl;
@@ -241,6 +302,7 @@ int usage() {
     std::puts("  elads-render render-map    <file.wad> <MAP> <out.png> [w h]");
     std::puts("  elads-render render-demo3d <out.png> [w h]        3D visual mode");
     std::puts("  elads-render render-demo-slope3d <out.png> [w h]  3D visual mode, sloped floor");
+    std::puts("  elads-render render-demo-3dfloor <out.png> [w h]  3D visual mode, 3D floor slab");
     std::puts("  elads-render render-map3d  <file.wad> <MAP> <out.png> [w h]");
     return 2;
 }
@@ -274,6 +336,12 @@ int main(int argc, char** argv) {
             const int h = argc >= 5 ? std::atoi(argv[4]) : 600;
             const gfx::MaterialSet mats = makeDemoMaterials();
             return render3DToPng(slopeDemoMap(), w, h, argv[2], &mats);
+        }
+        if (cmd == "render-demo-3dfloor" && argc >= 3) {
+            const int w = argc >= 5 ? std::atoi(argv[3]) : 900;
+            const int h = argc >= 5 ? std::atoi(argv[4]) : 600;
+            const gfx::MaterialSet mats = makeDemoMaterials();
+            return render3DToPng(threeDFloorDemoMap(), w, h, argv[2], &mats);
         }
         if (cmd == "render-map3d" && argc >= 5) {
             const int w = argc >= 7 ? std::atoi(argv[5]) : 900;

@@ -23,6 +23,7 @@ add_library(elads_core STATIC
     mapeditor/model/map_save.cpp
     mapeditor/model/sector_tri.cpp
     mapeditor/model/planes.cpp
+    mapeditor/model/threed_floors.cpp
     mapeditor/model/map_checks.cpp
     mapeditor/edit/selection.cpp
     mapeditor/edit/map_edit.cpp

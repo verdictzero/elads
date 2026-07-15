@@ -11,6 +11,7 @@
 #include "mapeditor/model/sector_style.h"
 #include "mapeditor/model/sector_tri.h"
 #include "mapeditor/model/tex_align.h"
+#include "mapeditor/model/threed_floors.h"
 
 namespace elads::view {
 namespace {
@@ -340,6 +341,54 @@ void MapRenderer3D::render(render::IRenderContext& ctx, const map::MapModel& m, 
                 wall(a, b, std::min(fCA, bCA), std::max(fCA, bCA), std::min(fCB, bCB),
                      std::max(fCB, bCB), tex, withColor(tintFor(tex.real, sh, 'S'), lc), map::WallPart::Upper, side,
                      pegTop, pegBot, fCeilA, fCeilB);
+            }
+        }
+    }
+
+    // 3D floors: control-sector slabs floating inside their target sectors — top/bottom caps over
+    // the target's polygon plus side walls around its boundary. Opaque first cut (alpha ignored).
+    {
+        const std::vector<map::ThreeDFloor> slabs = map::compute3DFloors(m);
+        const map::Sidedef flat0; // zero offsets for the slab's side walls
+        for (const map::ThreeDFloor& sf : slabs) {
+            if (sf.topZ <= sf.botZ || sf.targetSector < 0)
+                continue;
+            const map::Sector& ts = m.sector(sf.targetSector);
+            const float sh = shade(ts.lightLevel);
+            const map::ColorRGB lc = map::sectorLightColor(ts);
+
+            // Top + bottom caps over the target sector polygon.
+            const map::Triangulation tri = map::triangulateSector(m, sf.targetSector);
+            const Tex tt = resolve(sf.texTop), bt = resolve(sf.texBot);
+            const RGB topTint = withColor(tintFor(tt.real, sh, 'F'), lc);
+            const RGB botTint = withColor(tintFor(bt.real, sh, 'C'), lc);
+            auto& tb = batchFor(tt.handle);
+            auto& bb = batchFor(bt.handle);
+            for (size_t i = 0; i + 3 <= tri.indices.size(); i += 3) {
+                for (int k = 0; k < 3; ++k) {
+                    const util::Vec2 p = tri.points[tri.indices[i + k]];
+                    tb.push_back(vtx(p.x, sf.topZ, p.y, p.x / tt.w, p.y / tt.h, topTint));
+                }
+                for (int k = 0; k < 3; ++k) {
+                    const util::Vec2 p = tri.points[tri.indices[i + k]];
+                    bb.push_back(vtx(p.x, sf.botZ, p.y, p.x / bt.w, p.y / bt.h, botTint));
+                }
+            }
+
+            // Side walls around the target sector's boundary lines.
+            const Tex st = resolve(sf.texSide);
+            const RGB sTint = withColor(tintFor(st.real, sh, 'S'), lc);
+            for (int li = 0; li < static_cast<int>(m.linedefCount()); ++li) {
+                const map::Linedef& ll = m.linedef(li);
+                if (ll.v1 == map::kNoRef || ll.v2 == map::kNoRef)
+                    continue;
+                if (m.frontSector(ll) != sf.targetSector && m.backSector(ll) != sf.targetSector)
+                    continue;
+                const util::Vec2 a = m.vertex(ll.v1).pos;
+                const util::Vec2 b = m.vertex(ll.v2).pos;
+                wall(a, b, sf.botZ, sf.topZ, sf.botZ, sf.topZ, st, sTint,
+                     map::WallPart::OneSidedMiddle, flat0, /*pegTop=*/false, /*pegBot=*/false,
+                     sf.topZ, sf.topZ);
             }
         }
     }

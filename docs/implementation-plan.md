@@ -117,7 +117,14 @@ per-vertex tint by sector `lightcolor`; per-plane light adjusts the tint. Add `c
 Keep the fog cheap (V3D fill-rate). **Test:** headless render asserts fogged distance darkening +
 colored tint. **Deps:** A1 optional. **Acceptance:** colored/foggy sectors preview like GZDoom.
 
-### A4. 3D floors  — **v2, L**
+### A4. 3D floors  — **v2, L** — ✅ first cut
+**Status:** `src/mapeditor/model/threed_floors.{h,cpp}` parses `Sector_Set3DFloor` (160), maps the
+control sector → target sectors by the line's arg0 tag, and produces `{targetSector, topZ, botZ,
+texTop/Bot/Side, type, alpha}` slabs; the 3D view renders each as top/bottom caps over the target
+polygon + side walls around its boundary, with depth (`test_threed_floors`, `test_gl_3dfloor`, demo
+`render-demo-3dfloor`). Remaining: **translucency** (alpha blending + depth sort), inner-side
+texturing, tags > 255 (arg4), and per-type behaviour (swimmable/non-solid).
+
 **Goal:** render control-sector 3D floors as slabs. **Design:** parse **Sector_Set3DFloor (160)**:
 map control-sector (the tagged dummy) → target sectors via the line's tag/args; synthesize slab
 geometry (top+bottom flats at the control sector's floor/ceil heights, side walls with the control
