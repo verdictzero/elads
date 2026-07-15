@@ -276,7 +276,9 @@ is now format-aware and save-back preserves the format **and** the compiled ACS 
 (extend `archive`).
 **D4. Lua scripting** — vendor Lua 5.4 + sol2; expose Archive/Map/Graphics to scripts (see
 [05](design/05-text-script-editor.md)); a `ScriptManager`; sandboxed. **D5. Textured 2D mode** —
-flats/textures in the top-down view (reuse `MaterialSet` + a textured 2D shader).
+✅ done: `MapRenderer2D` takes an optional `MaterialSet` and textures sector fills with each
+sector's floor flat (textured shader + texture cache), grid/lines/vertices/overlay stay on the
+colour path; wired into `elads-view` and `elads-render` (`test_gl_textured2d`).
 
 ---
 

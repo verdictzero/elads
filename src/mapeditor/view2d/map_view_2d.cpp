@@ -50,6 +50,41 @@ constexpr render::VertexAttrib kAttribs[] = {{0, render::AttribType::Float2, 0},
                                              {1, render::AttribType::Float4, 8}};
 constexpr render::VertexLayout kLayout{kAttribs, 2, sizeof(MV)};
 
+// Textured 2D fill vertex: position (vec2) + uv (vec2) + tint (vec3).
+struct TMV {
+    float x, y, u, v, r, g, b;
+};
+void pushT(std::vector<TMV>& out, double x, double y, double u, double v, float r, float g,
+           float b) {
+    out.push_back({static_cast<float>(x), static_cast<float>(y), static_cast<float>(u),
+                   static_cast<float>(v), r, g, b});
+}
+constexpr render::VertexAttrib kTexAttribs[] = {{0, render::AttribType::Float2, 0},
+                                                {1, render::AttribType::Float2, 8},
+                                                {2, render::AttribType::Float3, 16}};
+constexpr render::VertexLayout kTexLayout{kTexAttribs, 3, sizeof(TMV)};
+
+const char* kTexVert = R"(#version 330 core
+layout(location = 0) in vec2 aPos;
+layout(location = 1) in vec2 aUV;
+layout(location = 2) in vec3 aTint;
+uniform mat4 uMvp;
+out vec2 vUV;
+out vec3 vTint;
+void main() {
+    gl_Position = uMvp * vec4(aPos, 0.0, 1.0);
+    vUV = aUV;
+    vTint = aTint;
+}
+)";
+const char* kTexFrag = R"(#version 330 core
+in vec2 vUV;
+in vec3 vTint;
+out vec4 fragColor;
+uniform sampler2D uTex;
+void main() { fragColor = vec4(texture(uTex, vUV).rgb * vTint, 1.0); }
+)";
+
 } // namespace
 
 Camera2D fitCamera(const map::MapModel& m, int width, int height, double marginFrac) {
@@ -102,13 +137,50 @@ util::Vec2 worldToScreen(const Camera2D& c, util::Vec2 world) {
     return {(ndcX + 1.0) * 0.5 * c.width, (1.0 - ndcY) * 0.5 * c.height};
 }
 
-MapRenderer2D::MapRenderer2D(render::IRenderDevice& device) : dev_(device) {
+MapRenderer2D::MapRenderer2D(render::IRenderDevice& device, const gfx::MaterialSet* materials)
+    : dev_(device), materials_(materials) {
     program_ = dev_.createProgram(render::ShaderSources{kVert, kFrag});
+    if (materials_) {
+        texProgram_ = dev_.createProgram(render::ShaderSources{kTexVert, kTexFrag});
+        const uint8_t whitePx[4] = {255, 255, 255, 255};
+        render::TextureDesc wd;
+        wd.width = 1;
+        wd.height = 1;
+        wd.pixels = whitePx;
+        white_ = dev_.createTexture(wd);
+    }
 }
 
 MapRenderer2D::~MapRenderer2D() {
+    for (auto& kv : cache_)
+        if (kv.second.real)
+            dev_.destroyTexture(kv.second.handle);
+    if (white_ != render::TextureHandle::Invalid)
+        dev_.destroyTexture(white_);
+    if (texProgram_ != render::ShaderHandle::Invalid)
+        dev_.destroyProgram(texProgram_);
     if (program_ != render::ShaderHandle::Invalid)
         dev_.destroyProgram(program_);
+}
+
+MapRenderer2D::Tex MapRenderer2D::resolve(const std::string& name) {
+    if (name.empty() || name == "-")
+        return {white_, 64, 64, false};
+    const auto it = cache_.find(name);
+    if (it != cache_.end())
+        return it->second;
+    Tex tex{white_, 64, 64, false};
+    if (materials_) {
+        if (const gfx::Image* img = materials_->find(name)) {
+            render::TextureDesc d;
+            d.width = img->width;
+            d.height = img->height;
+            d.pixels = img->rgba.data();
+            tex = {dev_.createTexture(d), img->width, img->height, true};
+        }
+    }
+    cache_.emplace(name, tex);
+    return tex;
 }
 
 namespace {
@@ -176,8 +248,43 @@ void MapRenderer2D::render(render::IRenderContext& ctx, const map::MapModel& m, 
         }
     }
 
-    // 2) Sector fills — earcut triangles, tinted by sector light (highlighted/selected recolour).
-    {
+    // 2) Sector fills — textured with each sector's floor flat when a MaterialSet is present
+    // (D5), else flat-shaded by sector light. Selected/highlighted sectors take the overlay tint.
+    if (materials_ && texProgram_ != render::ShaderHandle::Invalid) {
+        ctx.bindProgram(texProgram_);
+        ctx.setUniformMat4("uMvp", mvp);
+        std::unordered_map<uint32_t, std::vector<TMV>> batches;
+        for (int s = 0; s < static_cast<int>(m.sectorCount()); ++s) {
+            const Tex ft = resolve(m.sector(s).floorTex);
+            const float light = static_cast<float>(m.sector(s).lightLevel) / 255.f;
+            const float sh = 0.45f + light * 0.55f; // texture carries detail, so keep it readable
+            float r = sh, g = sh, b = sh;
+            if (matches(ov.selection, edit::ObjType::Sector, s)) {
+                r = kSel[0]; g = kSel[1]; b = kSel[2];
+            } else if (matches(ov.highlight, edit::ObjType::Sector, s)) {
+                r = kHl[0]; g = kHl[1]; b = kHl[2];
+            }
+            std::vector<TMV>& batch = batches[static_cast<uint32_t>(ft.handle)];
+            const map::Triangulation t = map::triangulateSector(m, s);
+            for (size_t i = 0; i + 3 <= t.indices.size(); i += 3)
+                for (int k = 0; k < 3; ++k) {
+                    const util::Vec2 p = t.points[t.indices[i + k]];
+                    pushT(batch, p.x, p.y, p.x / ft.w, p.y / ft.h, r, g, b);
+                }
+        }
+        for (auto& kv : batches) {
+            if (kv.second.empty())
+                continue;
+            ctx.bindTexture(0, static_cast<render::TextureHandle>(kv.first));
+            const render::BufferHandle buf =
+                dev_.createBuffer(render::BufferType::Vertex, render::BufferUsage::Stream,
+                                  kv.second.data(), kv.second.size() * sizeof(TMV));
+            ctx.bindVertexBuffer(buf, kTexLayout);
+            ctx.draw(render::Topology::Triangles, 0, static_cast<uint32_t>(kv.second.size()));
+            dev_.destroyBuffer(buf);
+        }
+        ctx.bindProgram(program_); // restore the colour program for lines/vertices/overlay
+    } else {
         std::vector<MV> fills;
         for (int s = 0; s < static_cast<int>(m.sectorCount()); ++s) {
             const map::Triangulation t = map::triangulateSector(m, s);

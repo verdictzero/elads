@@ -6,6 +6,10 @@
 // backends. See docs/design/04-map-editor.md §2.
 #pragma once
 
+#include <string>
+#include <unordered_map>
+
+#include "graphics/material_set.h"
 #include "mapeditor/edit/selection.h"
 #include "mapeditor/model/map_model.h"
 #include "render/backend/render_backend.h"
@@ -41,10 +45,12 @@ util::Vec2 screenToWorld(const Camera2D&, double screenX, double screenY);
 util::Vec2 worldToScreen(const Camera2D&, util::Vec2 world);
 
 // Renders sector fills, linedefs, vertices, and a grid for `map` via the render context.
-// Owns its shader program (created from the device on construction).
+// Owns its shader program (created from the device on construction). When a MaterialSet is
+// supplied, sector fills are textured with each sector's floor flat (D5); otherwise they are
+// flat-shaded by sector light.
 class MapRenderer2D {
 public:
-    explicit MapRenderer2D(render::IRenderDevice& device);
+    explicit MapRenderer2D(render::IRenderDevice& device, const gfx::MaterialSet* materials = nullptr);
     ~MapRenderer2D();
 
     void render(render::IRenderContext&, const map::MapModel&, const Camera2D&);
@@ -52,8 +58,19 @@ public:
     void render(render::IRenderContext&, const map::MapModel&, const Camera2D&, const MapOverlay&);
 
 private:
+    struct Tex {
+        render::TextureHandle handle = render::TextureHandle::Invalid;
+        int w = 64, h = 64;
+        bool real = false;
+    };
+    Tex resolve(const std::string& name);
+
     render::IRenderDevice& dev_;
-    render::ShaderHandle program_ = render::ShaderHandle::Invalid;
+    const gfx::MaterialSet* materials_ = nullptr;
+    render::ShaderHandle program_ = render::ShaderHandle::Invalid;    // colour (grid/lines/verts)
+    render::ShaderHandle texProgram_ = render::ShaderHandle::Invalid; // textured fills
+    render::TextureHandle white_ = render::TextureHandle::Invalid;
+    std::unordered_map<std::string, Tex> cache_;
 };
 
 } // namespace elads::view

@@ -257,7 +257,7 @@ int main(int argc, char** argv) {
 
         render::GLDevice dev;
         render::GLContext ctx;
-        view::MapRenderer2D r2(dev);
+        view::MapRenderer2D r2(dev, &materials); // textured top-down fills (D5)
         view::MapRenderer3D r3(dev, &materials);
 
         // The editor owns the (editable) 2D map state + camera; 3D fly keeps its own camera.

@@ -172,7 +172,8 @@ map::MapModel threeDFloorDemoMap() {
     return m;
 }
 
-int renderToPng(const map::MapModel& model, int w, int h, const std::string& out) {
+int renderToPng(const map::MapModel& model, int w, int h, const std::string& out,
+                const gfx::MaterialSet* materials = nullptr) {
     std::string err;
     render::HeadlessGL gl;
     if (!gl.init(3, 3, &err)) {
@@ -190,7 +191,7 @@ int renderToPng(const map::MapModel& model, int w, int h, const std::string& out
     fbo.bind();
     ctx.beginFrame(fbo.viewport());
     {
-        view::MapRenderer2D renderer(dev);
+        view::MapRenderer2D renderer(dev, materials); // textured fills when materials given (D5)
         const view::Camera2D cam = view::fitCamera(model, w, h);
         renderer.render(ctx, model, cam);
     }
@@ -198,8 +199,8 @@ int renderToPng(const map::MapModel& model, int w, int h, const std::string& out
 
     const gfx::Image img = fbo.readback(true);
     writeFile(out, gfx::encodePng(img));
-    std::printf("wrote %s (%dx%d)  GL: %s / %s\n", out.c_str(), w, h, gl.glVersion().c_str(),
-                gl.glRenderer().c_str());
+    std::printf("wrote %s (%dx%d%s)  GL: %s / %s\n", out.c_str(), w, h,
+                materials ? ", textured" : "", gl.glVersion().c_str(), gl.glRenderer().c_str());
     return 0;
 }
 
@@ -318,12 +319,15 @@ int main(int argc, char** argv) {
         if (cmd == "render-demo" && argc >= 3) {
             const int w = argc >= 5 ? std::atoi(argv[3]) : 800;
             const int h = argc >= 5 ? std::atoi(argv[4]) : 600;
-            return renderToPng(demoMap(), w, h, argv[2]);
+            const gfx::MaterialSet mats = makeDemoMaterials();
+            return renderToPng(demoMap(), w, h, argv[2], &mats);
         }
         if (cmd == "render-map" && argc >= 5) {
             const int w = argc >= 7 ? std::atoi(argv[5]) : 800;
             const int h = argc >= 7 ? std::atoi(argv[6]) : 600;
-            return renderToPng(loadMap(argv[2], argv[3]), w, h, argv[4]);
+            const archive::Wad wad = archive::Wad::read(readFile(argv[2]));
+            const gfx::MaterialSet mats = gfx::buildMaterialSetFromWad(wad);
+            return renderToPng(loadMapFromWad(wad, argv[3]), w, h, argv[4], &mats);
         }
         if (cmd == "render-demo3d" && argc >= 3) {
             const int w = argc >= 5 ? std::atoi(argv[3]) : 900;
